@@ -1,14 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module PhallParser
-  ( PhallExpression (ConstantExpression, VariableExpression),
-    PhallConstant
-      ( BooleanConstant,
-        IntegerConstant,
-        FloatConstant,
-        CharConstant,
-        StringConstant
-      ),
+  ( PhallExpression (..),
+    PhallConstant (..),
     parse,
   )
 where

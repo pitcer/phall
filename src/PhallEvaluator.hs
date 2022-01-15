@@ -1,14 +1,8 @@
 module PhallEvaluator where
 
 import PhallParser
-  ( PhallConstant
-      ( BooleanConstant,
-        CharConstant,
-        FloatConstant,
-        IntegerConstant,
-        StringConstant
-      ),
-    PhallExpression (ConstantExpression, VariableExpression),
+  ( PhallConstant (..),
+    PhallExpression (..),
   )
 
 data PhallValue
