@@ -30,7 +30,8 @@ parse = Megaparsec.between Lexer.spaceConsumer Megaparsec.eof parseExpression
 parseExpression :: Parser PhallExpression
 parseExpression =
   Megaparsec.choice
-    [ ConstantExpression <$> parseConstant
+    [ ConstantExpression <$> parseConstant,
+      VariableExpression <$> Lexer.tokenizeIdentifier
     ]
 
 parseConstant :: Parser PhallConstant
