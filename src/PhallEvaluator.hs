@@ -17,6 +17,7 @@ data PhallValue
   | FloatValue Double
   | CharValue Char
   | StringValue String
+  deriving (Show)
 
 evaluate :: PhallExpression -> PhallValue
 evaluate (ConstantExpression constant) = evaluateConstant constant
