@@ -24,7 +24,11 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Common
+      Interpreter
+      PhallEvaluator
+      PhallLexer
+      PhallParser
   other-modules:
       Paths_phall
   hs-source-dirs:
@@ -32,6 +36,7 @@ library
   build-depends:
       base
     , megaparsec
+    , text
   default-language: Haskell2010
 
 executable phall-exe
@@ -45,6 +50,7 @@ executable phall-exe
       base
     , megaparsec
     , phall
+    , text
   default-language: Haskell2010
 
 test-suite phall-test
@@ -59,4 +65,5 @@ test-suite phall-test
       base
     , megaparsec
     , phall
+    , text
   default-language: Haskell2010

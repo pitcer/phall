@@ -1,5 +1,6 @@
 dist-newstyle/
 out/
+playground/
 .stack-work/
 .idea/
 *.iml
