@@ -1,5 +1,10 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module PhallEvaluator where
 
+import Common (EvaluatorError (..))
+import Control.Monad.Except (Except)
+import qualified Control.Monad.Except as Except (throwError)
 import PhallParser
   ( PhallConstant (..),
     PhallExpression (..),
@@ -13,9 +18,17 @@ data PhallValue
   | StringValue String
   deriving (Show)
 
-evaluate :: PhallExpression -> PhallValue
-evaluate (ConstantExpression constant) = evaluateConstant constant
-evaluate (VariableExpression name) = StringValue $ "Variable: " ++ name
+evaluate :: PhallExpression -> Except EvaluatorError PhallValue
+evaluate ConditionalExpression {condition, positive, negative} = do
+  value <- evaluate condition
+  case value of
+    BooleanValue booleanValue ->
+      if booleanValue
+        then evaluate positive
+        else evaluate negative
+    _ -> Except.throwError $ InvalidTypeError "Boolean"
+evaluate (ConstantExpression constant) = return $ evaluateConstant constant
+evaluate (VariableExpression name) = return . StringValue $ "Variable: " ++ name
 
 evaluateConstant :: PhallConstant -> PhallValue
 evaluateConstant (BooleanConstant boolean) = BooleanValue boolean

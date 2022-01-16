@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module PhallParser
@@ -12,7 +13,12 @@ import qualified PhallLexer as Lexer
 import Text.Megaparsec as Megaparsec (between, choice, eof, try)
 
 data PhallExpression
-  = ConstantExpression PhallConstant
+  = ConditionalExpression
+      { condition :: PhallExpression,
+        positive :: PhallExpression,
+        negative :: PhallExpression
+      }
+  | ConstantExpression PhallConstant
   | VariableExpression String
   deriving (Show)
 
@@ -30,9 +36,20 @@ parse = Megaparsec.between Lexer.spaceConsumer Megaparsec.eof parseExpression
 parseExpression :: Parser PhallExpression
 parseExpression =
   Megaparsec.choice
-    [ ConstantExpression <$> parseConstant,
+    [ parseConditional,
+      ConstantExpression <$> parseConstant,
       VariableExpression <$> Lexer.tokenizeIdentifier
     ]
+
+parseConditional :: Parser PhallExpression
+parseConditional = do
+  Lexer.tokenizeKeyword "if"
+  condition <- parseExpression
+  Lexer.tokenizeKeyword "then"
+  positive <- parseExpression
+  Lexer.tokenizeKeyword "else"
+  negative <- parseExpression
+  return $ ConditionalExpression {condition, positive, negative}
 
 parseConstant :: Parser PhallConstant
 parseConstant =

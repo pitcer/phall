@@ -1,20 +1,43 @@
-module Interpreter (interpret) where
+module Interpreter (runInterpreter) where
 
-import Data.Text (Text)
+import Common
+import Control.Monad.Except (ExceptT)
+import qualified Control.Monad.Except as Except
+  ( liftEither,
+    liftIO,
+    runExcept,
+    runExceptT,
+    withExceptT,
+  )
 import qualified Data.Text.IO as TextIO (readFile)
 import qualified PhallEvaluator as Evaluator (evaluate)
-import qualified PhallParser as Parser (parse)
-import qualified Text.Megaparsec as Megaparsec
+import PhallParser (PhallExpression)
+import qualified PhallParser as Parser
+import qualified Text.Megaparsec as Megaparsec (errorBundlePretty, parse)
 
-interpret :: IO ()
-interpret = do
-  result <- parseFromFile Parser.parse "playground/test.phall"
+type ExceptIO e a = ExceptT e IO a
+
+runInterpreter :: IO ()
+runInterpreter = do
+  result <- Except.runExceptT interpret
   case result of
-    Left errorBundle -> putStrLn $ Megaparsec.errorBundlePretty errorBundle
-    Right expression -> do
-      print expression
-      print $ Evaluator.evaluate expression
+    Left (ParserError errorBundle) -> putStrLn $ Megaparsec.errorBundlePretty errorBundle
+    Left (EvaluatorError evaluatorError) -> print evaluatorError
+    Right _ -> return ()
+
+interpret :: ExceptIO Error ()
+interpret = do
+  expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse "playground/test.phall"
+  Except.liftIO $ print expression
+  value <-
+    Except.liftEither
+      . Except.runExcept
+      . Except.withExceptT EvaluatorError
+      $ Evaluator.evaluate expression
+  Except.liftIO $ print value
 
 parseFromFile ::
-  Megaparsec.Parsec e Text a -> String -> IO (Either (Megaparsec.ParseErrorBundle Text e) a)
-parseFromFile parser file = Megaparsec.parse parser file <$> TextIO.readFile file
+  Parser PhallExpression -> String -> ExceptIO ParserError PhallExpression
+parseFromFile parser file = do
+  text <- Except.liftIO $ TextIO.readFile file
+  Except.liftEither $ Megaparsec.parse parser file text

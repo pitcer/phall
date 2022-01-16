@@ -36,7 +36,9 @@ library
   build-depends:
       base
     , megaparsec
+    , mtl
     , text
+    , transformers
   default-language: Haskell2010
 
 executable phall-exe
@@ -49,8 +51,10 @@ executable phall-exe
   build-depends:
       base
     , megaparsec
+    , mtl
     , phall
     , text
+    , transformers
   default-language: Haskell2010
 
 test-suite phall-test
@@ -64,6 +68,8 @@ test-suite phall-test
   build-depends:
       base
     , megaparsec
+    , mtl
     , phall
     , text
+    , transformers
   default-language: Haskell2010
