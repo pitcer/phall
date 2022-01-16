@@ -9,25 +9,37 @@ module PhallParser
 where
 
 import Common (Parser)
-import qualified PhallLexer as Lexer
+import Data.Text.Lazy (Text)
+import qualified Lexer.PhallLexer as Lexer
+import Lexer.Symbol
 import Text.Megaparsec as Megaparsec (between, choice, eof, try)
 
 data PhallExpression
-  = ConditionalExpression
+  = LambdaExpression
+      { parameter :: Variable,
+        body :: PhallExpression
+      }
+  | ApplicationExpression
+      { function :: PhallExpression,
+        argument :: PhallExpression
+      }
+  | ConditionalExpression
       { condition :: PhallExpression,
         positive :: PhallExpression,
         negative :: PhallExpression
       }
   | ConstantExpression PhallConstant
-  | VariableExpression String
+  | VariableExpression Variable
   deriving (Show)
+
+type Variable = Text
 
 data PhallConstant
   = BooleanConstant Bool
   | IntegerConstant Integer
   | FloatConstant Double
   | CharConstant Char
-  | StringConstant String
+  | StringConstant Text
   deriving (Show)
 
 parse :: Parser PhallExpression
@@ -36,18 +48,34 @@ parse = Megaparsec.between Lexer.spaceConsumer Megaparsec.eof parseExpression
 parseExpression :: Parser PhallExpression
 parseExpression =
   Megaparsec.choice
-    [ parseConditional,
+    [ Megaparsec.try parseLambda,
+      Megaparsec.try parseConditional,
+      Megaparsec.try parseApplication,
       ConstantExpression <$> parseConstant,
-      VariableExpression <$> Lexer.tokenizeIdentifier
+      parseIdentifier
     ]
+
+parseLambda :: Parser PhallExpression
+parseLambda = do
+  Lexer.tokenizeOperator LambdaOperator
+  parameter <- Lexer.tokenizeIdentifier
+  Lexer.tokenizeOperator RightArrowOperator
+  body <- parseExpression
+  return $ LambdaExpression {parameter, body}
+
+parseApplication :: Parser PhallExpression
+parseApplication = do
+  function <- Megaparsec.choice [Lexer.betweenParenthesis parseExpression, parseIdentifier]
+  argument <- parseExpression
+  return $ ApplicationExpression {function, argument}
 
 parseConditional :: Parser PhallExpression
 parseConditional = do
-  Lexer.tokenizeKeyword "if"
+  Lexer.tokenizeKeyword IfKeyword
   condition <- parseExpression
-  Lexer.tokenizeKeyword "then"
+  Lexer.tokenizeKeyword ThenKeyword
   positive <- parseExpression
-  Lexer.tokenizeKeyword "else"
+  Lexer.tokenizeKeyword ElseKeyword
   negative <- parseExpression
   return $ ConditionalExpression {condition, positive, negative}
 
@@ -66,6 +94,10 @@ parseConstant =
 parseBoolean :: Parser Bool
 parseBoolean =
   Megaparsec.choice
-    [ True <$ Lexer.tokenizeKeyword "true",
-      False <$ Lexer.tokenizeKeyword "false"
+    [ True <$ Lexer.tokenizeKeyword TrueKeyword,
+      False <$ Lexer.tokenizeKeyword FalseKeyword
     ]
+
+parseIdentifier :: Parser PhallExpression
+parseIdentifier =
+  VariableExpression <$> Lexer.tokenizeIdentifier

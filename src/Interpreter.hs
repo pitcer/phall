@@ -9,7 +9,8 @@ import qualified Control.Monad.Except as Except
     runExceptT,
     withExceptT,
   )
-import qualified Data.Text.IO as TextIO (readFile)
+import qualified Data.Text.Lazy.IO as TextIO (readFile)
+import Error
 import qualified PhallEvaluator as Evaluator (evaluate)
 import PhallParser (PhallExpression)
 import qualified PhallParser as Parser

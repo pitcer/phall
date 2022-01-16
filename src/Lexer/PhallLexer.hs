@@ -1,19 +1,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module PhallLexer
+module Lexer.PhallLexer
   ( Parser,
     tokenizeIdentifier,
     tokenizeSignedFloat,
     tokenizeSignedInteger,
+    tokenizeOperator,
     tokenizeString,
     tokenizeChar,
     tokenizeKeyword,
+    betweenParenthesis,
     spaceConsumer,
   )
 where
 
 import Common (Parser)
-import Data.Text (Text)
+import qualified Control.Monad as Monad (guard)
+import qualified Data.Functor as Functor (void)
+import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as Text (pack)
+import Lexer.Symbol
 import Text.Megaparsec ((<|>))
 import qualified Text.Megaparsec as Megaparsec (between, empty, many, manyTill, notFollowedBy)
 import qualified Text.Megaparsec.Char as Char (alphaNumChar, char, letterChar, space1, string)
@@ -32,14 +38,15 @@ tokenizeChar :: Parser Char
 tokenizeChar =
   Megaparsec.between apostrophe apostrophe Lexer.charLiteral
   where
-    apostrophe = symbol "\'"
+    apostrophe = symbol Apostrophe
 
 -- TODO: add ${literal} syntax
-tokenizeString :: Parser String
+-- TODO: add escaping
+tokenizeString :: Parser Text
 tokenizeString =
-  quotation *> Megaparsec.manyTill Lexer.charLiteral quotation
+  fmap Text.pack $ quotation *> Megaparsec.manyTill Lexer.charLiteral quotation
   where
-    quotation = symbol "\""
+    quotation = symbol Quotation
 
 tokenizeSignedInteger :: Parser Integer
 tokenizeSignedInteger = Lexer.signed spaceConsumer integer
@@ -51,14 +58,24 @@ tokenizeSignedFloat = Lexer.signed spaceConsumer float
   where
     float = lexeme Lexer.float
 
--- TODO: check if it is a valid keyword
-tokenizeKeyword :: Text -> Parser ()
-tokenizeKeyword keyword =
-  Char.string keyword *> Megaparsec.notFollowedBy identifierNextCharacters *> spaceConsumer
+tokenizeOperator :: Operator -> Parser ()
+tokenizeOperator = do
+  Functor.void . symbol
 
-tokenizeIdentifier :: Parser String
+tokenizeKeyword :: Keyword -> Parser ()
+tokenizeKeyword keyword =
+  lexeme $
+    Char.string (name keyword)
+      *> Megaparsec.notFollowedBy identifierNextCharacters
+
+tokenizeIdentifier :: Parser Text
 tokenizeIdentifier =
-  lexeme $ fmap (:) identifierFirstCharacters <*> Megaparsec.many identifierNextCharacters
+  lexeme $ do
+    identifier <-
+      fmap Text.pack $
+        (:) <$> identifierFirstCharacters <*> Megaparsec.many identifierNextCharacters
+    Monad.guard $ notElem identifier $ map name (values :: [Keyword])
+    return identifier
 
 identifierFirstCharacters :: Parser Char
 identifierFirstCharacters = Char.letterChar <|> underscore
@@ -69,6 +86,10 @@ identifierNextCharacters = Char.alphaNumChar <|> underscore
 underscore :: Parser Char
 underscore = Char.char '_'
 
+betweenParenthesis :: Parser a -> Parser a
+betweenParenthesis =
+  Megaparsec.between (symbol OpenParenthesis) (symbol CloseParenthesis)
+
 spaceConsumer :: Parser ()
 spaceConsumer =
   Lexer.space
@@ -76,10 +97,10 @@ spaceConsumer =
     lineComment
     Megaparsec.empty
   where
-    lineComment = Lexer.skipLineComment "#"
+    lineComment = Lexer.skipLineComment $ name LineComment
 
 lexeme :: Parser a -> Parser a
 lexeme = Lexer.lexeme spaceConsumer
 
-symbol :: Text -> Parser Text
-symbol = Lexer.symbol spaceConsumer
+symbol :: (EnumValues a) => a -> Parser Text
+symbol = Lexer.symbol spaceConsumer . name
