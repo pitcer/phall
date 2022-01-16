@@ -5,6 +5,7 @@ module PhallParser
   ( PhallExpression (..),
     PhallConstant (..),
     parse,
+    VariableName,
   )
 where
 
@@ -16,7 +17,7 @@ import Text.Megaparsec as Megaparsec (between, choice, eof, try)
 
 data PhallExpression
   = LambdaExpression
-      { parameter :: Variable,
+      { parameter :: VariableName,
         body :: PhallExpression
       }
   | ApplicationExpression
@@ -29,10 +30,10 @@ data PhallExpression
         negative :: PhallExpression
       }
   | ConstantExpression PhallConstant
-  | VariableExpression Variable
+  | VariableExpression VariableName
   deriving (Show)
 
-type Variable = Text
+type VariableName = Text
 
 data PhallConstant
   = BooleanConstant Bool

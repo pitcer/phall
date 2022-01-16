@@ -26,10 +26,11 @@ library
   exposed-modules:
       Common
       Error
+      Evaluator.Environment
+      Evaluator.PhallEvaluator
       Interpreter
       Lexer.PhallLexer
       Lexer.Symbol
-      PhallEvaluator
       PhallParser
   other-modules:
       Paths_phall

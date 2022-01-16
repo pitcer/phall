@@ -11,7 +11,8 @@ import qualified Control.Monad.Except as Except
   )
 import qualified Data.Text.Lazy.IO as TextIO (readFile)
 import Error
-import qualified PhallEvaluator as Evaluator (evaluate)
+import qualified Evaluator.Environment as Environment (empty)
+import qualified Evaluator.PhallEvaluator as Evaluator (evaluate)
 import PhallParser (PhallExpression)
 import qualified PhallParser as Parser
 import qualified Text.Megaparsec as Megaparsec (errorBundlePretty, parse)
@@ -23,10 +24,10 @@ runInterpreter = do
   result <- Except.runExceptT interpret
   case result of
     Left (ParserError errorBundle) -> putStrLn $ Megaparsec.errorBundlePretty errorBundle
-    Left (EvaluatorError evaluatorError) -> print evaluatorError
+    Left (EvaluatorError evaluatorError) -> print $ message evaluatorError
     Right _ -> return ()
 
-interpret :: ExceptIO Error ()
+interpret :: ExceptIO PhallError ()
 interpret = do
   expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse "playground/test.phall"
   Except.liftIO $ print expression
@@ -34,7 +35,7 @@ interpret = do
     Except.liftEither
       . Except.runExcept
       . Except.withExceptT EvaluatorError
-      $ Evaluator.evaluate expression
+      $ Evaluator.evaluate Environment.empty expression
   Except.liftIO $ print value
 
 parseFromFile ::
