@@ -38,7 +38,6 @@ data Symbol
   = OpenParenthesisSymbol
   | CloseParenthesisSymbol
   | RightArrowSymbol
-  | LambdaSymbol
   | EqualitySymbol
   | QuotationSymbol
   | ApostropheSymbol
@@ -49,7 +48,6 @@ instance EnumValues Symbol where
   name OpenParenthesisSymbol = "("
   name CloseParenthesisSymbol = ")"
   name RightArrowSymbol = "->"
-  name LambdaSymbol = ".\\"
   name EqualitySymbol = "="
   name QuotationSymbol = "\""
   name ApostropheSymbol = "'"

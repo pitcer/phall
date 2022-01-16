@@ -59,7 +59,6 @@ parseExpression =
 
 parseLambda :: Parser PhallExpression
 parseLambda = do
-  Lexer.tokenizeSymbol LambdaSymbol
   parameter <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol RightArrowSymbol
   body <- parseExpression
