@@ -13,7 +13,7 @@ import Common (Parser)
 import Data.Text.Lazy (Text)
 import qualified Lexer.PhallLexer as Lexer
 import Lexer.Symbol
-import Text.Megaparsec as Megaparsec (between, choice, eof, try)
+import Text.Megaparsec as Megaparsec (between, choice, eof, optional, try)
 
 data PhallExpression
   = LambdaExpression
@@ -62,27 +62,31 @@ parseLambda = do
   parameter <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol RightArrowSymbol
   body <- parseExpression
-  return $ LambdaExpression {parameter, body}
+  return LambdaExpression {parameter, body}
 
 parseApplication :: Parser PhallExpression
 parseApplication = do
   function <- Megaparsec.choice [Lexer.betweenParenthesis parseExpression, parseIdentifier]
   argument <- parseExpression
-  return $ ApplicationExpression {function, argument}
+  return ApplicationExpression {function, argument}
 
 parseLet :: Parser PhallExpression
 parseLet = do
   Lexer.tokenizeKeyword LetKeyword
   variableName <- Lexer.tokenizeIdentifier
+  maybeParameter <- Megaparsec.optional Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol EqualitySymbol
   value <- parseExpression
   Lexer.tokenizeKeyword InKeyword
   body <- parseExpression
-  return $
+  return
     ApplicationExpression
       { function = LambdaExpression {parameter = variableName, body},
-        argument = value
+        argument = desugarFunction value maybeParameter
       }
+  where
+    desugarFunction value Nothing = value
+    desugarFunction body (Just parameter) = LambdaExpression {parameter, body}
 
 parseConditional :: Parser PhallExpression
 parseConditional = do
@@ -92,7 +96,7 @@ parseConditional = do
   positive <- parseExpression
   Lexer.tokenizeKeyword ElseKeyword
   negative <- parseExpression
-  return $ ConditionalExpression {condition, positive, negative}
+  return ConditionalExpression {condition, positive, negative}
 
 parseConstant :: Parser PhallConstant
 parseConstant =
