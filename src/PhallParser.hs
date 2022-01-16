@@ -50,6 +50,7 @@ parseExpression :: Parser PhallExpression
 parseExpression =
   Megaparsec.choice
     [ Megaparsec.try parseLambda,
+      Megaparsec.try parseLet,
       Megaparsec.try parseConditional,
       Megaparsec.try parseApplication,
       ConstantExpression <$> parseConstant,
@@ -58,9 +59,9 @@ parseExpression =
 
 parseLambda :: Parser PhallExpression
 parseLambda = do
-  Lexer.tokenizeOperator LambdaOperator
+  Lexer.tokenizeSymbol LambdaSymbol
   parameter <- Lexer.tokenizeIdentifier
-  Lexer.tokenizeOperator RightArrowOperator
+  Lexer.tokenizeSymbol RightArrowSymbol
   body <- parseExpression
   return $ LambdaExpression {parameter, body}
 
@@ -69,6 +70,20 @@ parseApplication = do
   function <- Megaparsec.choice [Lexer.betweenParenthesis parseExpression, parseIdentifier]
   argument <- parseExpression
   return $ ApplicationExpression {function, argument}
+
+parseLet :: Parser PhallExpression
+parseLet = do
+  Lexer.tokenizeKeyword LetKeyword
+  variableName <- Lexer.tokenizeIdentifier
+  Lexer.tokenizeSymbol EqualitySymbol
+  value <- parseExpression
+  Lexer.tokenizeKeyword InKeyword
+  body <- parseExpression
+  return $
+    ApplicationExpression
+      { function = LambdaExpression {parameter = variableName, body},
+        argument = value
+      }
 
 parseConditional :: Parser PhallExpression
 parseConditional = do

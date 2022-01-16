@@ -5,7 +5,7 @@ module Lexer.PhallLexer
     tokenizeIdentifier,
     tokenizeSignedFloat,
     tokenizeSignedInteger,
-    tokenizeOperator,
+    tokenizeSymbol,
     tokenizeString,
     tokenizeChar,
     tokenizeKeyword,
@@ -38,7 +38,7 @@ tokenizeChar :: Parser Char
 tokenizeChar =
   Megaparsec.between apostrophe apostrophe Lexer.charLiteral
   where
-    apostrophe = symbol Apostrophe
+    apostrophe = tokenizeSymbol ApostropheSymbol
 
 -- TODO: add ${literal} syntax
 -- TODO: add escaping
@@ -46,7 +46,7 @@ tokenizeString :: Parser Text
 tokenizeString =
   fmap Text.pack $ quotation *> Megaparsec.manyTill Lexer.charLiteral quotation
   where
-    quotation = symbol Quotation
+    quotation = tokenizeSymbol QuotationSymbol
 
 tokenizeSignedInteger :: Parser Integer
 tokenizeSignedInteger = Lexer.signed spaceConsumer integer
@@ -58,8 +58,8 @@ tokenizeSignedFloat = Lexer.signed spaceConsumer float
   where
     float = lexeme Lexer.float
 
-tokenizeOperator :: Operator -> Parser ()
-tokenizeOperator = do
+tokenizeSymbol :: Symbol -> Parser ()
+tokenizeSymbol = do
   Functor.void . symbol
 
 tokenizeKeyword :: Keyword -> Parser ()
@@ -88,7 +88,7 @@ underscore = Char.char '_'
 
 betweenParenthesis :: Parser a -> Parser a
 betweenParenthesis =
-  Megaparsec.between (symbol OpenParenthesis) (symbol CloseParenthesis)
+  Megaparsec.between (symbol OpenParenthesisSymbol) (symbol CloseParenthesisSymbol)
 
 spaceConsumer :: Parser ()
 spaceConsumer =
@@ -97,7 +97,7 @@ spaceConsumer =
     lineComment
     Megaparsec.empty
   where
-    lineComment = Lexer.skipLineComment $ name LineComment
+    lineComment = Lexer.skipLineComment $ name LineCommentSymbol
 
 lexeme :: Parser a -> Parser a
 lexeme = Lexer.lexeme spaceConsumer

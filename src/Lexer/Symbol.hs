@@ -3,7 +3,6 @@
 module Lexer.Symbol
   ( EnumValues (..),
     Keyword (..),
-    Operator (..),
     Symbol (..),
   )
 where
@@ -20,6 +19,8 @@ data Keyword
   = IfKeyword
   | ThenKeyword
   | ElseKeyword
+  | LetKeyword
+  | InKeyword
   | TrueKeyword
   | FalseKeyword
   deriving (Enum, Bounded)
@@ -28,29 +29,28 @@ instance EnumValues Keyword where
   name IfKeyword = "if"
   name ThenKeyword = "then"
   name ElseKeyword = "else"
+  name LetKeyword = "let"
+  name InKeyword = "in"
   name TrueKeyword = "true"
   name FalseKeyword = "false"
 
-data Operator
-  = RightArrowOperator
-  | LambdaOperator
-  deriving (Enum, Bounded)
-
-instance EnumValues Operator where
-  name RightArrowOperator = "->"
-  name LambdaOperator = ".\\"
-
 data Symbol
-  = OpenParenthesis
-  | CloseParenthesis
-  | Quotation
-  | Apostrophe
-  | LineComment
+  = OpenParenthesisSymbol
+  | CloseParenthesisSymbol
+  | RightArrowSymbol
+  | LambdaSymbol
+  | EqualitySymbol
+  | QuotationSymbol
+  | ApostropheSymbol
+  | LineCommentSymbol
   deriving (Enum, Bounded)
 
 instance EnumValues Symbol where
-  name OpenParenthesis = "("
-  name CloseParenthesis = ")"
-  name Quotation = "\""
-  name Apostrophe = "'"
-  name LineComment = "#"
+  name OpenParenthesisSymbol = "("
+  name CloseParenthesisSymbol = ")"
+  name RightArrowSymbol = "->"
+  name LambdaSymbol = ".\\"
+  name EqualitySymbol = "="
+  name QuotationSymbol = "\""
+  name ApostropheSymbol = "'"
+  name LineCommentSymbol = "#"
