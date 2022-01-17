@@ -1,4 +1,5 @@
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -20,22 +21,25 @@ data PhallValue
   | CharValue Char
   | StringValue Text
   | ListValue [PhallValue]
-  | ClosureValue
-      { parameter :: VariableName,
-        body :: PhallExpression,
-        environment :: Environment
-      }
+  | ClosureValue ClosureInner
   deriving (Show)
+
+newtype ClosureInner
+  = ClosureInner (PhallValue -> Except EvaluatorError PhallValue)
+
+instance Show ClosureInner where
+  show _ = "Closure"
 
 evaluate :: Environment -> PhallExpression -> Except EvaluatorError PhallValue
 evaluate environment LambdaExpression {parameter, body} =
-  return $ ClosureValue {parameter, body, environment}
+  return . ClosureValue . ClosureInner $
+    \argument -> evaluate (Environment.withVariable environment parameter argument) body
 evaluate environment ApplicationExpression {function, argument} = do
-  functionValue <- evaluate environment function
-  case functionValue of
-    ClosureValue {parameter, body, environment = closureEnvironment} -> do
+  evaluatedFunction <- evaluate environment function
+  case evaluatedFunction of
+    ClosureValue (ClosureInner closure) -> do
       evaluatedArgument <- evaluate environment argument
-      evaluate (Environment.withVariable closureEnvironment parameter evaluatedArgument) body
+      closure evaluatedArgument
     _ -> Except.throwError $ InvalidTypeError {correctType = "Closure", actualType = "?"}
 evaluate environment (ListExpression list) = do
   evaluatedList <- mapM (evaluate environment) list
