@@ -35,20 +35,26 @@ instance EnumValues Keyword where
   name FalseKeyword = "false"
 
 data Symbol
-  = OpenParenthesisSymbol
-  | CloseParenthesisSymbol
+  = LeftParenthesisSymbol
+  | RightParenthesisSymbol
+  | LeftSquareBracket
+  | RightSquareBracket
   | RightArrowSymbol
   | EqualitySymbol
+  | CommaSymbol
   | QuotationSymbol
   | ApostropheSymbol
   | LineCommentSymbol
   deriving (Enum, Bounded)
 
 instance EnumValues Symbol where
-  name OpenParenthesisSymbol = "("
-  name CloseParenthesisSymbol = ")"
+  name LeftParenthesisSymbol = "("
+  name RightParenthesisSymbol = ")"
+  name LeftSquareBracket = "["
+  name RightSquareBracket = "]"
   name RightArrowSymbol = "->"
   name EqualitySymbol = "="
+  name CommaSymbol = ","
   name QuotationSymbol = "\""
   name ApostropheSymbol = "'"
   name LineCommentSymbol = "#"

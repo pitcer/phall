@@ -19,6 +19,7 @@ data PhallValue
   | FloatValue Double
   | CharValue Char
   | StringValue Text
+  | ListValue [PhallValue]
   | ClosureValue
       { parameter :: VariableName,
         body :: PhallExpression,
@@ -36,6 +37,9 @@ evaluate environment ApplicationExpression {function, argument} = do
       evaluatedArgument <- evaluate environment argument
       evaluate (Environment.withVariable closureEnvironment parameter evaluatedArgument) body
     _ -> Except.throwError $ InvalidTypeError {correctType = "Closure", actualType = "?"}
+evaluate environment (ListExpression list) = do
+  evaluatedList <- mapM (evaluate environment) list
+  return $ ListValue evaluatedList
 evaluate environment ConditionalExpression {condition, positive, negative} = do
   value <- evaluate environment condition
   case value of

@@ -88,7 +88,7 @@ underscore = Char.char '_'
 
 betweenParenthesis :: Parser a -> Parser a
 betweenParenthesis =
-  Megaparsec.between (symbol OpenParenthesisSymbol) (symbol CloseParenthesisSymbol)
+  Megaparsec.between (symbol LeftParenthesisSymbol) (symbol RightParenthesisSymbol)
 
 spaceConsumer :: Parser ()
 spaceConsumer =

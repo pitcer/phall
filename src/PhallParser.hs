@@ -13,7 +13,7 @@ import Common (Parser)
 import Data.Text.Lazy (Text)
 import qualified Lexer.PhallLexer as Lexer
 import Lexer.Symbol
-import Text.Megaparsec as Megaparsec (between, choice, eof, optional, try)
+import Text.Megaparsec as Megaparsec (between, choice, eof, optional, sepBy, try)
 
 data PhallExpression
   = LambdaExpression
@@ -29,6 +29,7 @@ data PhallExpression
         positive :: PhallExpression,
         negative :: PhallExpression
       }
+  | ListExpression [PhallExpression]
   | ConstantExpression PhallConstant
   | VariableExpression VariableName
   deriving (Show)
@@ -49,9 +50,10 @@ parse = Megaparsec.between Lexer.spaceConsumer Megaparsec.eof parseExpression
 parseExpression :: Parser PhallExpression
 parseExpression =
   Megaparsec.choice
-    [ Megaparsec.try parseLambda,
-      Megaparsec.try parseLet,
+    [ Megaparsec.try parseLet,
       Megaparsec.try parseConditional,
+      Megaparsec.try parseLambda,
+      Megaparsec.try parseList,
       Megaparsec.try parseApplication,
       ConstantExpression <$> parseConstant,
       parseIdentifier
@@ -97,6 +99,13 @@ parseConditional = do
   Lexer.tokenizeKeyword ElseKeyword
   negative <- parseExpression
   return ConditionalExpression {condition, positive, negative}
+
+parseList :: Parser PhallExpression
+parseList = do
+  Lexer.tokenizeSymbol LeftSquareBracket
+  list <- Megaparsec.sepBy parseExpression $ Lexer.tokenizeSymbol CommaSymbol
+  Lexer.tokenizeSymbol RightSquareBracket
+  return $ ListExpression list
 
 parseConstant :: Parser PhallConstant
 parseConstant =
