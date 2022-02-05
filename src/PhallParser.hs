@@ -9,11 +9,10 @@ module PhallParser
   )
 where
 
-import Common (Parser)
 import Data.Text.Lazy (Text)
-import qualified Lexer.PhallLexer as Lexer
+import Lexer.PhallLexer as Lexer
 import Lexer.Symbol
-import Text.Megaparsec as Megaparsec (between, choice, eof, optional, sepBy, some, try)
+import qualified Text.Megaparsec as Megaparsec
 
 data PhallExpression
   = LambdaExpression
@@ -59,7 +58,8 @@ parseInnerExpression =
     (Megaparsec.choice simpleExpressions)
     (Megaparsec.choice complexExpressions)
 
-betweenParenthesisOrNot :: Parser PhallExpression -> Parser PhallExpression -> Parser PhallExpression
+betweenParenthesisOrNot ::
+  Parser PhallExpression -> Parser PhallExpression -> Parser PhallExpression
 betweenParenthesisOrNot freestandingParser betweenParser =
   Megaparsec.choice [Megaparsec.try freestandingParser, Lexer.betweenParenthesis betweenParser]
 

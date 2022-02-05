@@ -10,8 +10,8 @@ module Error
 where
 
 import Common
-import Data.Text.Lazy (Text)
-import Text.Megaparsec (ParseErrorBundle)
+import Data.Text.Lazy as Text
+import Text.Megaparsec as Megaparsec
 
 class Error a where
   message :: a -> Text

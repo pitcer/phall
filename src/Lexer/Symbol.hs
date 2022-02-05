@@ -7,7 +7,7 @@ module Lexer.Symbol
   )
 where
 
-import Data.Text.Lazy (Text)
+import Data.Text.Lazy as Text
 
 class (Enum a, Bounded a) => EnumValues a where
   name :: a -> Text

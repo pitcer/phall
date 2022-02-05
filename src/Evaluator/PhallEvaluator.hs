@@ -4,10 +4,10 @@
 module Evaluator.PhallEvaluator where
 
 import Control.Monad.Except (Except)
-import qualified Control.Monad.Except as Except (throwError)
+import qualified Control.Monad.Except as Except
 import Error (EvaluatorError (..))
 import Evaluator.Environment (Environment)
-import qualified Evaluator.Environment as Environment (getVariable, withVariable)
+import qualified Evaluator.Environment as Environment
 import Evaluator.PhallValue
 import PhallParser
 

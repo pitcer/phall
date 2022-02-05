@@ -1,8 +1,8 @@
 module Common (Parser, ParsecError, ParsecStream) where
 
-import Data.Text.Lazy (Text)
-import Data.Void (Void)
-import Text.Megaparsec (Parsec)
+import Data.Text.Lazy as Text
+import Data.Void as Void
+import Text.Megaparsec as Megaparsec
 
 type Parser a = Parsec ParsecError ParsecStream a
 

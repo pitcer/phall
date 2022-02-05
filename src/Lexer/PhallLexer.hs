@@ -15,24 +15,13 @@ module Lexer.PhallLexer
 where
 
 import Common (Parser)
-import qualified Control.Monad as Monad (guard)
-import qualified Data.Functor as Functor (void)
-import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as Text (pack)
+import Control.Monad as Monad
+import Data.Functor as Functor
+import Data.Text.Lazy as Text
 import Lexer.Symbol
-import Text.Megaparsec ((<|>))
-import qualified Text.Megaparsec as Megaparsec (between, empty, many, manyTill, notFollowedBy)
-import qualified Text.Megaparsec.Char as Char (alphaNumChar, char, letterChar, space1, string)
+import Text.Megaparsec as Megaparsec
+import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
-  ( charLiteral,
-    decimal,
-    float,
-    lexeme,
-    signed,
-    skipLineComment,
-    space,
-    symbol,
-  )
 
 tokenizeChar :: Parser Char
 tokenizeChar =
@@ -74,7 +63,7 @@ tokenizeIdentifier =
     identifier <-
       fmap Text.pack $
         (:) <$> identifierFirstCharacters <*> Megaparsec.many identifierNextCharacters
-    Monad.guard $ notElem identifier $ map name (values :: [Keyword])
+    Monad.guard $ notElem identifier $ Prelude.map name (values :: [Keyword])
     return identifier
 
 identifierFirstCharacters :: Parser Char

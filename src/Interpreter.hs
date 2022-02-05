@@ -1,22 +1,14 @@
 module Interpreter (runInterpreter) where
 
 import Common
-import Control.Monad.Except (ExceptT)
-import qualified Control.Monad.Except as Except
-  ( liftEither,
-    liftIO,
-    runExcept,
-    runExceptT,
-    withExceptT,
-  )
-import qualified Data.Text.Lazy.IO as TextIO (readFile)
+import Control.Monad.Except as Except
+import Data.Text.Lazy.IO as TextIO
 import Error
-import qualified Evaluator.Environment as Environment (empty)
-import qualified Text.Pretty.Simple as PrettySimple (pPrint)
-import qualified Evaluator.PhallEvaluator as Evaluator (evaluate)
-import PhallParser (PhallExpression)
-import qualified PhallParser as Parser
-import qualified Text.Megaparsec as Megaparsec (errorBundlePretty, parse)
+import Evaluator.Environment as Environment
+import Evaluator.PhallEvaluator as Evaluator
+import PhallParser as Parser
+import Text.Megaparsec as Megaparsec
+import Text.Pretty.Simple as PrettySimple
 
 type ExceptIO e a = ExceptT e IO a
 
@@ -24,7 +16,7 @@ runInterpreter :: IO ()
 runInterpreter = do
   result <- Except.runExceptT interpret
   case result of
-    Left (ParserError errorBundle) -> putStrLn $ Megaparsec.errorBundlePretty errorBundle
+    Left (ParserError errorBundle) -> Prelude.putStrLn $ Megaparsec.errorBundlePretty errorBundle
     Left (EvaluatorError evaluatorError) -> print $ message evaluatorError
     Right _ -> return ()
 
