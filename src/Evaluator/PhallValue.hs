@@ -1,8 +1,8 @@
 module Evaluator.PhallValue where
 
-import Error (EvaluatorError)
-import Control.Monad.Except (Except)
+import Control.Monad.Except as Except
 import Data.Text.Internal.Lazy (Text)
+import Error (EvaluatorError)
 
 data PhallValue
   = BooleanValue Bool
@@ -12,10 +12,13 @@ data PhallValue
   | StringValue Text
   | ListValue [PhallValue]
   | ClosureValue ClosureInner
-  deriving (Show)
+  deriving (Show, Eq)
 
 newtype ClosureInner
   = ClosureInner (PhallValue -> Except EvaluatorError PhallValue)
 
 instance Show ClosureInner where
   show _ = "Closure"
+
+instance Eq ClosureInner where
+  _ == _ = False

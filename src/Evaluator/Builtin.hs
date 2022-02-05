@@ -1,19 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Evaluator.Builtin where
 
-import Control.Monad.Except (Except)
-import qualified Control.Monad.Except as Except (throwError)
+import Control.Monad.Except as Except
 import Error (EvaluatorError (..))
+import Evaluator.BuiltinTH
 import Evaluator.PhallValue (ClosureInner (..), PhallValue (..))
 
 add :: PhallValue -> PhallValue -> Except EvaluatorError PhallValue
-add (IntegerValue first) (IntegerValue second) =
-  return . IntegerValue $ first + second
-add (FloatValue first) (FloatValue second) =
-  return . FloatValue $ first + second
-add _ _ =
-  Except.throwError $ InvalidTypeError "Integer -> Integer -> Integer | Float -> Float -> Float" ""
+add = $(makeArithmeticOperation '(+) '(+))
+
+subtract :: PhallValue -> PhallValue -> Except EvaluatorError PhallValue
+subtract = $(makeArithmeticOperation '(-) '(-))
+
+multiply :: PhallValue -> PhallValue -> Except EvaluatorError PhallValue
+multiply = $(makeArithmeticOperation '(*) '(*))
+
+divide :: PhallValue -> PhallValue -> Except EvaluatorError PhallValue
+divide = $(makeArithmeticOperation 'quot '(/))
+
+isEqual :: PhallValue -> PhallValue -> Except EvaluatorError PhallValue
+isEqual first second = return . BooleanValue $ first == second
 
 fold :: PhallValue -> PhallValue -> PhallValue -> Except EvaluatorError PhallValue
 fold closure firstElement (ListValue list) = do
@@ -22,8 +30,8 @@ fold closure firstElement (ListValue list) = do
     folder element exceptAccumulator = do
       accumulator <- exceptAccumulator
       elementClosure <- unwrapClosure closure
-      cl2 <- elementClosure element
-      accumulatorClosure <- unwrapClosure cl2
+      innerClosure <- elementClosure element
+      accumulatorClosure <- unwrapClosure innerClosure
       accumulatorClosure accumulator
 fold _ _ _ =
   Except.throwError $ InvalidTypeError "(a -> b -> b) -> b -> [a] -> b" ""

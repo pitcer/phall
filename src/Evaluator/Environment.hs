@@ -3,13 +3,11 @@
 
 module Evaluator.Environment where
 
-import Control.Monad.Except (Except)
-import qualified Control.Monad.Except as Except (throwError)
-import Data.Map (Map)
-import qualified Data.Map as Map (empty, insert, lookup)
+import Control.Monad.Except as Except
+import Data.Map as Map
 import Data.Text.Lazy (Text)
 import Error (EvaluatorError (..))
-import qualified Evaluator.Builtin as Builtin (add, fold)
+import Evaluator.Builtin as Builtin
 import Evaluator.PhallValue (ClosureInner (..), PhallValue (..))
 import PhallParser (VariableName)
 
@@ -31,6 +29,10 @@ getVariable _ "fold" =
     return . ClosureValue . ClosureInner $ \firstElement ->
       return . ClosureValue . ClosureInner $ \accumulator ->
         Builtin.fold closure firstElement accumulator
+getVariable _ "isEqual" =
+  return . ClosureValue . ClosureInner $ \first ->
+    return . ClosureValue . ClosureInner $ \second ->
+      Builtin.isEqual first second
 getVariable environment variableName =
   case Map.lookup variableName $ variables environment of
     Nothing -> Except.throwError VariableNotFound {variableName}

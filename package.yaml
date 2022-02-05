@@ -27,6 +27,7 @@ dependencies:
   - containers
   - pretty-simple
   - hspec
+  - template-haskell
 
 library:
   source-dirs: src
