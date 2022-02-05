@@ -13,7 +13,7 @@ import Common (Parser)
 import Data.Text.Lazy (Text)
 import qualified Lexer.PhallLexer as Lexer
 import Lexer.Symbol
-import Text.Megaparsec as Megaparsec (between, choice, eof, optional, sepBy, try)
+import Text.Megaparsec as Megaparsec (between, choice, eof, optional, sepBy, some, try)
 
 data PhallExpression
   = LambdaExpression
@@ -32,7 +32,7 @@ data PhallExpression
   | ListExpression [PhallExpression]
   | ConstantExpression PhallConstant
   | VariableExpression VariableName
-  deriving (Show)
+  deriving (Show, Eq)
 
 type VariableName = Text
 
@@ -42,35 +42,64 @@ data PhallConstant
   | FloatConstant Double
   | CharConstant Char
   | StringConstant Text
-  deriving (Show)
+  deriving (Show, Eq)
 
 parse :: Parser PhallExpression
 parse = Megaparsec.between Lexer.spaceConsumer Megaparsec.eof parseExpression
 
 parseExpression :: Parser PhallExpression
 parseExpression =
-  Megaparsec.choice
-    [ Megaparsec.try parseLet,
-      Megaparsec.try parseConditional,
-      Megaparsec.try parseLambda,
-      Megaparsec.try parseList,
-      Megaparsec.try parseApplication,
-      ConstantExpression <$> parseConstant,
-      parseIdentifier
-    ]
+  betweenParenthesisOrNot innerParser innerParser
+  where
+    innerParser = Megaparsec.choice $ complexExpressions ++ simpleExpressions
+
+parseInnerExpression :: Parser PhallExpression
+parseInnerExpression =
+  betweenParenthesisOrNot
+    (Megaparsec.choice simpleExpressions)
+    (Megaparsec.choice complexExpressions)
+
+betweenParenthesisOrNot :: Parser PhallExpression -> Parser PhallExpression -> Parser PhallExpression
+betweenParenthesisOrNot freestandingParser betweenParser =
+  Megaparsec.choice [Megaparsec.try freestandingParser, Lexer.betweenParenthesis betweenParser]
+
+complexExpressions :: [Parser PhallExpression]
+complexExpressions =
+  [ Megaparsec.try parseLet,
+    Megaparsec.try parseConditional,
+    Megaparsec.try parseLambda,
+    Megaparsec.try parseApplication
+  ]
+
+simpleExpressions :: [Parser PhallExpression]
+simpleExpressions =
+  [ Megaparsec.try parseList,
+    ConstantExpression <$> parseConstant,
+    parseIdentifier
+  ]
 
 parseLambda :: Parser PhallExpression
 parseLambda = do
-  parameter <- Lexer.tokenizeIdentifier
+  parameters <- Megaparsec.some Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol RightArrowSymbol
   body <- parseExpression
-  return LambdaExpression {parameter, body}
+  return $
+    foldr
+      (\parameter previousLambdas -> LambdaExpression {parameter, body = previousLambdas})
+      body
+      parameters
 
 parseApplication :: Parser PhallExpression
 parseApplication = do
-  function <- Megaparsec.choice [Lexer.betweenParenthesis parseExpression, parseIdentifier]
-  argument <- parseExpression
-  return ApplicationExpression {function, argument}
+  function <- betweenParenthesisOrNot parseIdentifier parseExpression
+  arguments <- Megaparsec.some parseInnerExpression
+  return $
+    foldl
+      ( \previousApplications argument ->
+          ApplicationExpression {function = previousApplications, argument}
+      )
+      function
+      arguments
 
 parseLet :: Parser PhallExpression
 parseLet = do

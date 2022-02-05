@@ -26,8 +26,10 @@ library
   exposed-modules:
       Common
       Error
+      Evaluator.Builtin
       Evaluator.Environment
       Evaluator.PhallEvaluator
+      Evaluator.PhallValue
       Interpreter
       Lexer.PhallLexer
       Lexer.Symbol
@@ -39,8 +41,10 @@ library
   build-depends:
       base
     , containers
+    , hspec
     , megaparsec
     , mtl
+    , pretty-simple
     , text
     , transformers
   default-language: Haskell2010
@@ -55,17 +59,21 @@ executable phall-exe
   build-depends:
       base
     , containers
+    , hspec
     , megaparsec
     , mtl
     , phall
+    , pretty-simple
     , text
     , transformers
   default-language: Haskell2010
 
 test-suite phall-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
+      ParserSpec
+      Spec
       Paths_phall
   hs-source-dirs:
       test
@@ -73,9 +81,11 @@ test-suite phall-test
   build-depends:
       base
     , containers
+    , hspec
     , megaparsec
     , mtl
     , phall
+    , pretty-simple
     , text
     , transformers
   default-language: Haskell2010

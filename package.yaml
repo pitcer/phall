@@ -25,6 +25,8 @@ dependencies:
   - mtl
   - transformers
   - containers
+  - pretty-simple
+  - hspec
 
 library:
   source-dirs: src
@@ -42,7 +44,7 @@ executables:
 
 tests:
   phall-test:
-    main: Spec.hs
+    main: Main.hs
     source-dirs: test
     ghc-options:
       - -threaded
@@ -50,3 +52,4 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - phall
+      - hspec

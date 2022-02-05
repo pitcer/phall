@@ -12,6 +12,7 @@ import qualified Control.Monad.Except as Except
 import qualified Data.Text.Lazy.IO as TextIO (readFile)
 import Error
 import qualified Evaluator.Environment as Environment (empty)
+import qualified Text.Pretty.Simple as PrettySimple (pPrint)
 import qualified Evaluator.PhallEvaluator as Evaluator (evaluate)
 import PhallParser (PhallExpression)
 import qualified PhallParser as Parser
@@ -30,13 +31,13 @@ runInterpreter = do
 interpret :: ExceptIO PhallError ()
 interpret = do
   expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse "playground/test.phall"
-  Except.liftIO $ print expression
+  Except.liftIO $ PrettySimple.pPrint expression
   value <-
     Except.liftEither
       . Except.runExcept
       . Except.withExceptT EvaluatorError
       $ Evaluator.evaluate Environment.empty expression
-  Except.liftIO $ print value
+  Except.liftIO $ PrettySimple.pPrint value
 
 parseFromFile ::
   Parser PhallExpression -> String -> ExceptIO ParserError PhallExpression

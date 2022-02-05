@@ -5,28 +5,11 @@ module Evaluator.PhallEvaluator where
 
 import Control.Monad.Except (Except)
 import qualified Control.Monad.Except as Except (throwError)
-import Data.Text.Lazy (Text)
 import Error (EvaluatorError (..))
-import qualified Evaluator.Environment as Environment (Environment, getVariable, withVariable)
+import Evaluator.Environment (Environment)
+import qualified Evaluator.Environment as Environment (getVariable, withVariable)
+import Evaluator.PhallValue
 import PhallParser
-
-type Environment = Environment.Environment PhallValue
-
-data PhallValue
-  = BooleanValue Bool
-  | IntegerValue Integer
-  | FloatValue Double
-  | CharValue Char
-  | StringValue Text
-  | ListValue [PhallValue]
-  | ClosureValue ClosureInner
-  deriving (Show)
-
-newtype ClosureInner
-  = ClosureInner (PhallValue -> Except EvaluatorError PhallValue)
-
-instance Show ClosureInner where
-  show _ = "Closure"
 
 evaluate :: Environment -> PhallExpression -> Except EvaluatorError PhallValue
 evaluate environment LambdaExpression {parameter, body} =
