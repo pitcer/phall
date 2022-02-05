@@ -24,6 +24,18 @@ getVariable _ "add" =
   return . ClosureValue . ClosureInner $ \first ->
     return . ClosureValue . ClosureInner $ \second ->
       Builtin.add first second
+getVariable _ "sub" =
+  return . ClosureValue . ClosureInner $ \first ->
+    return . ClosureValue . ClosureInner $ \second ->
+      Builtin.subtract first second
+getVariable _ "mul" =
+  return . ClosureValue . ClosureInner $ \first ->
+    return . ClosureValue . ClosureInner $ \second ->
+      Builtin.multiply first second
+getVariable _ "div" =
+  return . ClosureValue . ClosureInner $ \first ->
+    return . ClosureValue . ClosureInner $ \second ->
+      Builtin.divide first second
 getVariable _ "fold" =
   return . ClosureValue . ClosureInner $ \closure ->
     return . ClosureValue . ClosureInner $ \firstElement ->
