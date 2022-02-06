@@ -37,14 +37,16 @@ data EvaluatorError
 
 instance Error EvaluatorError where
   message InvalidTypeError {correctType, actualType} =
-    "Invalid type, expected '" <> correctType <> "' but get '" <> actualType <> "' instead"
+    "InvalidTypeError: Invalid type, expected '" <> correctType <> "' but get '" <> actualType
+      <> "' instead"
   message VariableNotFound {variableName} =
-    "Variable '" <> variableName <> "' not found in environment"
+    "VariableNotFound: Variable '" <> variableName <> "' not found in environment"
 
 data TypeError
   = TypeMismatchError
       { expectedType :: Text,
-        foundType :: Text
+        foundType :: Text,
+        context :: Text
       }
   | TypeNotFoundError
       { typeVariableName :: Text
@@ -52,7 +54,11 @@ data TypeError
   deriving (Show)
 
 instance Error TypeError where
-  message TypeMismatchError {expectedType, foundType} =
-    "Invalid type, expected '" <> expectedType <> "' but get '" <> foundType <> "' instead"
+  message TypeMismatchError {expectedType, foundType, context} =
+    "TypeMismatchError: Invalid type, expected '" <> expectedType <> "' but get '" <> foundType
+      <> "' instead: "
+      <> context
+      <> "."
   message TypeNotFoundError {typeVariableName} =
-    "Type for variable '" <> typeVariableName <> "' not found in type environment"
+    "TypeNotFoundError: Type for variable '" <> typeVariableName
+      <> "' not found in type environment"

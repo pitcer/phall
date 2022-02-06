@@ -23,7 +23,12 @@ divide = $(makeArithmeticOperation 'quot '(/))
 
 -- TODO: also allow floats
 arithmeticOperationType :: PhallType
-arithmeticOperationType = createNestedLambdas [IntegerType, IntegerType, IntegerType]
+arithmeticOperationType =
+  createNestedLambdas
+    [ ConstantType IntegerType,
+      ConstantType IntegerType,
+      ConstantType IntegerType
+    ]
 
 --  LambdaType
 --    { parameterType = IntegerType,
@@ -39,15 +44,16 @@ isEqual first second = return . BooleanValue $ first == second
 
 isEqualType :: PhallType
 isEqualType =
-  --createNestedLambdas [AnyType, AnyType, BooleanType]
-  LambdaType
-    { parameterType = AnyType,
-      bodyType =
-        LambdaType
-          { parameterType = AnyType,
-            bodyType = BooleanType
-          }
-    }
+  createNestedLambdas [AnyType, AnyType, ConstantType BooleanType]
+
+--  LambdaType
+--    { parameterType = AnyType,
+--      bodyType =
+--        LambdaType
+--          { parameterType = AnyType,
+--            bodyType = BooleanType
+--          }
+--    }
 
 fold :: PhallValue -> PhallValue -> PhallValue -> Except EvaluatorError PhallValue
 fold closure firstElement (ListValue list) = do

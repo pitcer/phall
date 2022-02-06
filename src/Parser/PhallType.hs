@@ -8,50 +8,58 @@ import Lexer.Symbol as Symbol
 
 data PhallType
   = AnyType
-  | BooleanType
-  | IntegerType
-  | FloatType
-  | CharType
-  | StringType
+  | ConstantType PhallConstantType
   | ListType PhallType
   | OptionType PhallType
   | LambdaType
       { parameterType :: PhallType,
         bodyType :: PhallType
       }
+  deriving (Show)
+
+data PhallConstantType
+  = BooleanType
+  | IntegerType
+  | FloatType
+  | CharType
+  | StringType
   deriving (Show, Eq)
 
-typesEqual :: PhallType -> PhallType -> Bool
-typesEqual AnyType _ = True
-typesEqual _ AnyType = True
-typesEqual first second = first == second
+instance Eq PhallType where
+  AnyType == _ = True
+  _ == AnyType = True
+  ConstantType first == ConstantType second = first == second
+  ListType first == ListType second = first == second
+  OptionType first == OptionType second = first == second
+  (==)
+    LambdaType
+      { parameterType = firstParameter,
+        bodyType = firstBody
+      }
+    LambdaType
+      { parameterType = secondParameter,
+        bodyType = secondBody
+      } = firstParameter == secondParameter && firstBody == secondBody
+  _ == _ = False
 
 fromTypeKeyword :: TypeKeyword -> PhallType
 fromTypeKeyword AnyTypeKeyword = AnyType
-fromTypeKeyword BooleanTypeKeyword = BooleanType
-fromTypeKeyword IntegerTypeKeyword = IntegerType
-fromTypeKeyword FloatTypeKeyword = FloatType
-fromTypeKeyword CharTypeKeyword = CharType
-fromTypeKeyword StringTypeKeyword = StringType
+fromTypeKeyword BooleanTypeKeyword = ConstantType BooleanType
+fromTypeKeyword IntegerTypeKeyword = ConstantType IntegerType
+fromTypeKeyword FloatTypeKeyword = ConstantType FloatType
+fromTypeKeyword CharTypeKeyword = ConstantType CharType
+fromTypeKeyword StringTypeKeyword = ConstantType StringType
 
 getTypeName :: PhallType -> Text
 getTypeName AnyType = enumName AnyTypeKeyword
-getTypeName BooleanType = enumName BooleanTypeKeyword
-getTypeName IntegerType = enumName IntegerTypeKeyword
-getTypeName FloatType = enumName FloatTypeKeyword
-getTypeName CharType = enumName CharTypeKeyword
-getTypeName StringType = enumName StringTypeKeyword
+getTypeName (ConstantType BooleanType) = enumName BooleanTypeKeyword
+getTypeName (ConstantType IntegerType) = enumName IntegerTypeKeyword
+getTypeName (ConstantType FloatType) = enumName FloatTypeKeyword
+getTypeName (ConstantType CharType) = enumName CharTypeKeyword
+getTypeName (ConstantType StringType) = enumName StringTypeKeyword
 getTypeName (ListType listType) =
-  Text.concat [enumName LeftSquareBracket, getTypeName listType, enumName RightSquareBracket]
+  enumName LeftSquareBracket <> getTypeName listType <> enumName RightSquareBracket
 getTypeName (OptionType optionType) =
-  Text.concat [getTypeName optionType, enumName QuestionMark]
+  getTypeName optionType <> enumName QuestionMark
 getTypeName LambdaType {parameterType, bodyType} =
-  Text.concat
-    [ "(",
-      getTypeName parameterType,
-      " ",
-      enumName RightArrowSymbol,
-      " ",
-      getTypeName bodyType,
-      ")"
-    ]
+  "(" <> getTypeName parameterType <> " " <> enumName RightArrowSymbol <> " " <> getTypeName bodyType <> ")"
