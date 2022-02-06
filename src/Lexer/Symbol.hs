@@ -21,6 +21,7 @@ data Keyword
   | ElseKeyword
   | LetKeyword
   | InKeyword
+  | DataKeyword
   | TrueKeyword
   | FalseKeyword
   deriving (Enum, Bounded)
@@ -31,6 +32,7 @@ instance EnumValues Keyword where
   enumName ElseKeyword = "else"
   enumName LetKeyword = "let"
   enumName InKeyword = "in"
+  enumName DataKeyword = "data"
   enumName TrueKeyword = "true"
   enumName FalseKeyword = "false"
 
@@ -56,6 +58,8 @@ data Symbol
   | RightParenthesisSymbol
   | LeftSquareBracket
   | RightSquareBracket
+  | LeftCurlyBracket
+  | RightCurlyBracket
   | RightArrowSymbol
   | QuestionMark
   | EqualitySymbol
@@ -71,6 +75,8 @@ instance EnumValues Symbol where
   enumName RightParenthesisSymbol = ")"
   enumName LeftSquareBracket = "["
   enumName RightSquareBracket = "]"
+  enumName LeftCurlyBracket = "{"
+  enumName RightCurlyBracket = "}"
   enumName RightArrowSymbol = "->"
   enumName QuestionMark = "?"
   enumName EqualitySymbol = "="

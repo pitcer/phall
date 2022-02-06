@@ -7,7 +7,7 @@ import Data.Map as Map
 import Data.Text.Lazy (Text)
 import Error (TypeError (..))
 import Evaluator.Builtin as Builtin
-import Parser.PhallParser (VariableName)
+import Parser.PhallParser (Name)
 import Parser.PhallType
 
 newtype TypeEnvironment = TypeEnvironment
@@ -18,7 +18,7 @@ newtype TypeEnvironment = TypeEnvironment
 empty :: TypeEnvironment
 empty = TypeEnvironment {variables = Map.empty}
 
-getType :: TypeEnvironment -> VariableName -> Except TypeError PhallType
+getType :: TypeEnvironment -> Name -> Except TypeError PhallType
 getType _ "add" = return Builtin.arithmeticOperationType
 getType _ "sub" = return Builtin.arithmeticOperationType
 getType _ "mul" = return Builtin.arithmeticOperationType
@@ -30,6 +30,6 @@ getType environment variableName =
     Nothing -> Except.throwError TypeNotFoundError {typeVariableName = variableName}
     Just variable -> return variable
 
-withVariable :: TypeEnvironment -> VariableName -> PhallType -> TypeEnvironment
+withVariable :: TypeEnvironment -> Name -> PhallType -> TypeEnvironment
 withVariable environment variableName value =
   TypeEnvironment {variables = Map.insert variableName value $ variables environment}

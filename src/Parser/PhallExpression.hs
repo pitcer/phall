@@ -4,8 +4,17 @@ import Data.Text.Lazy as Text
 import Parser.PhallType
 
 data PhallExpression
-  = LambdaExpression
-      { parameter :: VariableName,
+  = DataDeclarationExpression
+      { declarationName :: Name,
+        declarationFields :: [DataTypeField],
+        declarationBody :: PhallExpression
+      }
+  | DataInstanceExpression
+      { instanceName :: Name,
+        instanceFields :: [DataInstanceField]
+      }
+  | LambdaExpression
+      { parameter :: Name,
         maybeParameterType :: Maybe PhallType,
         body :: PhallExpression,
         maybeBodyType :: Maybe PhallType
@@ -21,10 +30,14 @@ data PhallExpression
       }
   | ListExpression [PhallExpression]
   | ConstantExpression PhallConstant
-  | VariableExpression VariableName
+  | VariableExpression Name
   deriving (Show, Eq)
 
-type VariableName = Text
+data DataInstanceField = DataInstanceField
+  { fieldName :: Name,
+    fieldValue :: PhallExpression
+  }
+  deriving (Show, Eq)
 
 data PhallConstant
   = BooleanConstant Bool

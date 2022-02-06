@@ -48,6 +48,10 @@ data TypeError
         foundType :: Text,
         context :: Text
       }
+  | FieldNamesMismatchError
+      { typeFieldName :: Text,
+        actualFieldName :: Text
+      }
   | TypeNotFoundError
       { typeVariableName :: Text
       }
@@ -59,6 +63,10 @@ instance Error TypeError where
       <> "' instead: "
       <> context
       <> "."
+  message FieldNamesMismatchError {typeFieldName, actualFieldName} =
+    "FieldNamesMismatchError: Invalid field name, declared '" <> typeFieldName <> "' but get '"
+      <> actualFieldName
+      <> "'."
   message TypeNotFoundError {typeVariableName} =
     "TypeNotFoundError: Type for variable '" <> typeVariableName
       <> "' not found in type environment"

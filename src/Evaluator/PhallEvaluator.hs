@@ -3,15 +3,26 @@
 
 module Evaluator.PhallEvaluator where
 
+import Control.Monad as Monad
 import Control.Monad.Except (Except)
 import qualified Control.Monad.Except as Except
+import Data.Map as Map
 import Error (EvaluatorError (..))
 import Evaluator.Environment (Environment)
 import qualified Evaluator.Environment as Environment
 import Evaluator.PhallValue
-import Parser.PhallParser
+import Parser.PhallExpression as Expression
 
 evaluate :: Environment -> PhallExpression -> Except EvaluatorError PhallValue
+evaluate environment DataDeclarationExpression {declarationBody} =
+  evaluate environment declarationBody
+evaluate environment DataInstanceExpression {instanceFields} = do
+  fields <- Monad.foldM evaluateField Map.empty instanceFields
+  return $ DataValue fields
+  where
+    evaluateField fields DataInstanceField {fieldName, fieldValue} = do
+      value <- evaluate environment fieldValue
+      return $ Map.insert fieldName value fields
 evaluate environment LambdaExpression {parameter, body} =
   return . ClosureValue . ClosureInner $
     \argument -> evaluate (Environment.withVariable environment parameter argument) body

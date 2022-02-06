@@ -3,17 +3,69 @@
 
 module TypeEvaluator.TypeEvaluator where
 
+import Control.Monad as Monad
 import Control.Monad.Except as Except
+import qualified Data.List as List
 import Error (TypeError (..))
-import Parser.PhallExpression
-import Parser.PhallType (PhallConstantType (..), PhallType (..))
-import qualified Parser.PhallType as Type
+import Parser.PhallExpression as Expression
+import Parser.PhallType as Type
 import TypeEvaluator.TypeEnvironment as TypeEnvironment
 
 evaluate :: PhallExpression -> Except TypeError (PhallExpression, PhallType)
 evaluate = evaluateType TypeEnvironment.empty
 
 evaluateType :: TypeEnvironment -> PhallExpression -> Except TypeError (PhallExpression, PhallType)
+evaluateType
+  environment
+  DataDeclarationExpression {declarationName, declarationFields, declarationBody} = do
+    let declarationType = DataType declarationFields
+    let bodyEnvironment = TypeEnvironment.withVariable environment declarationName declarationType
+    (filledBody, bodyType) <- evaluateType bodyEnvironment declarationBody
+    let expression =
+          DataDeclarationExpression
+            { declarationName,
+              declarationFields,
+              declarationBody = filledBody
+            }
+    return (expression, bodyType)
+evaluateType environment DataInstanceExpression {instanceName, instanceFields} = do
+  instanceType <- TypeEnvironment.getType environment instanceName
+  case instanceType of
+    DataType typeFields -> do
+      let sortedTypeFields = List.sortOn Type.fieldName typeFields
+      let sortedInstanceFields = List.sortOn Expression.fieldName instanceFields
+      evaluatedInstanceFields <- Monad.mapM evaluateInstanceField sortedInstanceFields
+      validatedFields <- Monad.zipWithM validateField sortedTypeFields evaluatedInstanceFields
+      let result = DataInstanceExpression {instanceName, instanceFields = validatedFields}
+      let resultType = ConstantType $ DataTypeName instanceName
+      return (result, resultType)
+    _ ->
+      Except.throwError $
+        TypeMismatchError
+          { expectedType = "DataType(" <> instanceName <> ")",
+            foundType = Type.getTypeName instanceType,
+            context = "evaluate data instance expression"
+          }
+  where
+    evaluateInstanceField DataInstanceField {Expression.fieldName, fieldValue} = do
+      (evaluatedValue, evaluatedType) <- evaluateType environment fieldValue
+      let result = DataInstanceField {Expression.fieldName, fieldValue = evaluatedValue}
+      return (result, evaluatedType)
+
+    validateField ::
+      DataTypeField -> (DataInstanceField, PhallType) -> Except TypeError DataInstanceField
+    validateField
+      DataTypeField {Type.fieldName = typeFieldName, Type.fieldType}
+      (field@DataInstanceField {Expression.fieldName}, evaluatedType) = do
+        Monad.unless (fieldName == typeFieldName) . Except.throwError $
+          FieldNamesMismatchError {typeFieldName, actualFieldName = fieldName}
+        Monad.unless (evaluatedType == fieldType) . Except.throwError $
+          TypeMismatchError
+            { expectedType = Type.getTypeName fieldType,
+              foundType = Type.getTypeName evaluatedType,
+              context = "evaluate data instance expression"
+            }
+        return field
 evaluateType environment LambdaExpression {parameter, maybeParameterType, body, maybeBodyType} = do
   let parameterType = evaluateMaybeType maybeParameterType
   let bodyEnvironment = TypeEnvironment.withVariable environment parameter parameterType
@@ -32,18 +84,21 @@ evaluateType environment LambdaExpression {parameter, maybeParameterType, body, 
             context = "evaluate lambda expression"
           }
   where
-    createLambdaResult parameterType evaluatedBody evaluatedBodyType =
-      ( LambdaExpression
-          { parameter,
-            maybeParameterType,
-            body = evaluatedBody,
-            maybeBodyType = Just evaluatedBodyType
-          },
-        LambdaType
-          { Type.parameterType = parameterType,
-            Type.bodyType = evaluatedBodyType
-          }
-      )
+    createLambdaResult parameterType evaluatedBody evaluatedBodyType = do
+      let result =
+            LambdaExpression
+              { parameter,
+                maybeParameterType,
+                body = evaluatedBody,
+                maybeBodyType = Just evaluatedBodyType
+              }
+      let resultType =
+            LambdaType
+              { Type.parameterType = parameterType,
+                Type.bodyType = evaluatedBodyType
+              }
+      (result, resultType)
+
     evaluateMaybeType Nothing = AnyType -- TODO: get from body context
     evaluateMaybeType (Just justType) = justType
 evaluateType environment ApplicationExpression {function, argument} = do

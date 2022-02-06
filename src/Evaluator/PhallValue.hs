@@ -3,6 +3,7 @@ module Evaluator.PhallValue where
 import Control.Monad.Except as Except
 import Data.Text.Internal.Lazy (Text)
 import Error (EvaluatorError)
+import Data.Map as Map
 
 data PhallValue
   = BooleanValue Bool
@@ -12,6 +13,7 @@ data PhallValue
   | StringValue Text
   | ListValue [PhallValue]
   | ClosureValue ClosureInner
+  | DataValue (Map Text PhallValue)
   deriving (Show, Eq)
 
 newtype ClosureInner

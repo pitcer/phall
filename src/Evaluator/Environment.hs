@@ -9,7 +9,7 @@ import Data.Text.Lazy (Text)
 import Error (EvaluatorError (..))
 import Evaluator.Builtin as Builtin
 import Evaluator.PhallValue (ClosureInner (..), PhallValue (..))
-import Parser.PhallParser (VariableName)
+import Parser.PhallParser (Name)
 
 newtype Environment = Environment
   { variables :: Map Text PhallValue
@@ -19,7 +19,7 @@ newtype Environment = Environment
 empty :: Environment
 empty = Environment {variables = Map.empty}
 
-getVariable :: Environment -> VariableName -> Except EvaluatorError PhallValue
+getVariable :: Environment -> Name -> Except EvaluatorError PhallValue
 getVariable _ "add" =
   return . ClosureValue . ClosureInner $ \first ->
     return . ClosureValue . ClosureInner $ \second ->
@@ -50,6 +50,6 @@ getVariable environment variableName =
     Nothing -> Except.throwError VariableNotFound {variableName}
     Just variable -> return variable
 
-withVariable :: Environment -> VariableName -> PhallValue -> Environment
+withVariable :: Environment -> Name -> PhallValue -> Environment
 withVariable environment variableName value =
   Environment {variables = Map.insert variableName value $ variables environment}

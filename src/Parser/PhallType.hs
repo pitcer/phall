@@ -15,6 +15,7 @@ data PhallType
       { parameterType :: PhallType,
         bodyType :: PhallType
       }
+  | DataType [DataTypeField]
   deriving (Show)
 
 data PhallConstantType
@@ -23,7 +24,16 @@ data PhallConstantType
   | FloatType
   | CharType
   | StringType
+  | DataTypeName Name
   deriving (Show, Eq)
+
+data DataTypeField = DataTypeField
+  { fieldName :: Name,
+    fieldType :: PhallType
+  }
+  deriving (Show, Eq)
+
+type Name = Text
 
 instance Eq PhallType where
   AnyType == _ = True
@@ -57,9 +67,19 @@ getTypeName (ConstantType IntegerType) = enumName IntegerTypeKeyword
 getTypeName (ConstantType FloatType) = enumName FloatTypeKeyword
 getTypeName (ConstantType CharType) = enumName CharTypeKeyword
 getTypeName (ConstantType StringType) = enumName StringTypeKeyword
+getTypeName (ConstantType (DataTypeName name)) = name
 getTypeName (ListType listType) =
   enumName LeftSquareBracket <> getTypeName listType <> enumName RightSquareBracket
 getTypeName (OptionType optionType) =
   getTypeName optionType <> enumName QuestionMark
 getTypeName LambdaType {parameterType, bodyType} =
-  "(" <> getTypeName parameterType <> " " <> enumName RightArrowSymbol <> " " <> getTypeName bodyType <> ")"
+  "(" <> getTypeName parameterType <> " " <> enumName RightArrowSymbol <> " "
+    <> getTypeName bodyType
+    <> ")"
+getTypeName (DataType fields) =
+  "{" <> Text.intercalate ", " fieldsText <> "}"
+  where
+    fieldsText =
+      Prelude.map
+        (\DataTypeField {fieldName, fieldType} -> fieldName <> ": " <> getTypeName fieldType)
+        fields

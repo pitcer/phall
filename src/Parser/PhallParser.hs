@@ -5,14 +5,14 @@ module Parser.PhallParser
   ( PhallExpression (..),
     PhallConstant (..),
     parse,
-    VariableName,
+    Name,
   )
 where
 
 import Lexer.PhallLexer as Lexer
 import Lexer.Symbol as Symbol
-import Parser.PhallExpression
-import Parser.PhallType as PhallType
+import Parser.PhallExpression as Expression
+import Parser.PhallType as Type
 import qualified Text.Megaparsec as Megaparsec
 
 parse :: Parser PhallExpression
@@ -37,7 +37,8 @@ betweenParenthesisOrNot freestandingParser betweenParser =
 
 complexExpressions :: [Parser PhallExpression]
 complexExpressions =
-  [ Megaparsec.try parseLet,
+  [ Megaparsec.try parseDataDeclaration,
+    Megaparsec.try parseLet,
     Megaparsec.try parseConditional,
     Megaparsec.try parseLambda,
     Megaparsec.try parseApplication
@@ -45,7 +46,8 @@ complexExpressions =
 
 simpleExpressions :: [Parser PhallExpression]
 simpleExpressions =
-  [ Megaparsec.try parseList,
+  [ Megaparsec.try parseDataInstance,
+    Megaparsec.try parseList,
     ConstantExpression <$> parseConstant,
     parseIdentifier
   ]
@@ -80,6 +82,49 @@ parseApplication = do
       function
       arguments
 
+parseDataDeclaration :: Parser PhallExpression
+parseDataDeclaration = do
+  Lexer.tokenizeKeyword DataKeyword
+  name <- Lexer.tokenizeIdentifier
+  Lexer.tokenizeSymbol EqualitySymbol
+  Lexer.tokenizeSymbol LeftCurlyBracket
+  fields <- Megaparsec.sepBy parseField $ Lexer.tokenizeSymbol CommaSymbol
+  Lexer.tokenizeSymbol RightCurlyBracket
+  Lexer.tokenizeKeyword InKeyword
+  body <- parseExpression
+  return
+    DataDeclarationExpression
+      { declarationName = name,
+        declarationFields = fields,
+        declarationBody = body
+      }
+
+parseDataInstance :: Parser PhallExpression
+parseDataInstance = do
+  instanceName <- Lexer.tokenizeIdentifier
+  Lexer.tokenizeSymbol LeftCurlyBracket
+  instanceFields <- Megaparsec.sepBy parseFieldInstance $ Lexer.tokenizeSymbol CommaSymbol
+  Lexer.tokenizeSymbol RightCurlyBracket
+  return DataInstanceExpression {instanceName, instanceFields}
+
+parseFieldInstance :: Parser DataInstanceField
+parseFieldInstance = do
+  fieldName <- Lexer.tokenizeIdentifier
+  Lexer.tokenizeSymbol EqualitySymbol
+  fieldValue <- parseExpression
+  return DataInstanceField {Expression.fieldName, Expression.fieldValue}
+
+parseField :: Parser DataTypeField
+parseField = do
+  fieldName <- Lexer.tokenizeIdentifier
+  Lexer.tokenizeSymbol ColonSymbol
+  typeName <- Lexer.tokenizeIdentifier -- TODO: replace with parseType
+  let typeKeyword = Symbol.fromName typeName
+  let maybeType = fmap Type.fromTypeKeyword typeKeyword
+  case maybeType of
+    Nothing -> fail "unknown type token"
+    Just fieldType -> return DataTypeField {Type.fieldName, Type.fieldType}
+
 parseLet :: Parser PhallExpression
 parseLet = do
   Lexer.tokenizeKeyword LetKeyword
@@ -110,11 +155,11 @@ parseLet = do
           maybeBodyType = Nothing
         }
 
-parseParameter :: Parser (VariableName, Maybe PhallType)
+parseParameter :: Parser (Name, Maybe PhallType)
 parseParameter = do
   name <- Lexer.tokenizeIdentifier
   typeKeyword <- parseType
-  return (name, fmap PhallType.fromTypeKeyword typeKeyword)
+  return (name, fmap Type.fromTypeKeyword typeKeyword)
 
 parseType :: Parser (Maybe TypeKeyword)
 parseType = do
