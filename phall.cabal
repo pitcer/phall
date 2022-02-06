@@ -37,6 +37,7 @@ library
       Parser.PhallExpression
       Parser.PhallParser
       Parser.PhallType
+      TypeEvaluator.TypedExpression
       TypeEvaluator.TypeEnvironment
       TypeEvaluator.TypeEvaluator
   other-modules:

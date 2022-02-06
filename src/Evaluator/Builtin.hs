@@ -21,23 +21,13 @@ multiply = $(makeArithmeticOperation '(*) '(*))
 divide :: PhallValue -> PhallValue -> Except EvaluatorError PhallValue
 divide = $(makeArithmeticOperation 'quot '(/))
 
--- TODO: also allow floats
 arithmeticOperationType :: PhallType
 arithmeticOperationType =
   createNestedLambdas
-    [ ConstantType IntegerType,
-      ConstantType IntegerType,
-      ConstantType IntegerType
+    [ AnyType,
+      AnyType,
+      AnyType
     ]
-
---  LambdaType
---    { parameterType = IntegerType,
---      bodyType =
---        LambdaType
---          { parameterType = IntegerType,
---            bodyType = IntegerType
---          }
---    }
 
 isEqual :: PhallValue -> PhallValue -> Except EvaluatorError PhallValue
 isEqual first second = return . BooleanValue $ first == second
@@ -45,15 +35,6 @@ isEqual first second = return . BooleanValue $ first == second
 isEqualType :: PhallType
 isEqualType =
   createNestedLambdas [AnyType, AnyType, ConstantType BooleanType]
-
---  LambdaType
---    { parameterType = AnyType,
---      bodyType =
---        LambdaType
---          { parameterType = AnyType,
---            bodyType = BooleanType
---          }
---    }
 
 fold :: PhallValue -> PhallValue -> PhallValue -> Except EvaluatorError PhallValue
 fold closure firstElement (ListValue list) = do

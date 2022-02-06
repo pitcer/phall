@@ -57,30 +57,24 @@ parseLambda = do
   parameters <- Megaparsec.some parseParameter
   Lexer.tokenizeSymbol RightArrowSymbol
   body <- parseExpression
-  return $
-    foldr
-      ( \(parameter, parameterType) previousLambdas ->
-          LambdaExpression
-            { parameter,
-              maybeParameterType = parameterType,
-              body = previousLambdas,
-              maybeBodyType = Nothing
-            }
-      )
-      body
-      parameters
+  return $ foldr createLambda body parameters
+  where
+    createLambda (parameter, parameterType) previousLambda =
+      LambdaExpression
+        { parameter,
+          maybeParameterType = parameterType,
+          body = previousLambda,
+          maybeBodyType = Nothing
+        }
 
 parseApplication :: Parser PhallExpression
 parseApplication = do
   function <- betweenParenthesisOrNot parseIdentifier parseExpression
   arguments <- Megaparsec.some parseInnerExpression
-  return $
-    foldl
-      ( \previousApplications argument ->
-          ApplicationExpression {function = previousApplications, argument}
-      )
-      function
-      arguments
+  return $ foldl createApplication function arguments
+  where
+    createApplication previousApplication argument =
+      ApplicationExpression {function = previousApplication, argument}
 
 parseDataDeclaration :: Parser PhallExpression
 parseDataDeclaration = do
@@ -134,15 +128,16 @@ parseLet = do
   value <- parseExpression
   Lexer.tokenizeKeyword InKeyword
   body <- parseExpression
+  let function =
+        LambdaExpression
+          { parameter = variableName,
+            maybeParameterType = variableType,
+            body,
+            maybeBodyType = Nothing
+          }
   return
     ApplicationExpression
-      { function =
-          LambdaExpression
-            { parameter = variableName,
-              maybeParameterType = variableType,
-              body,
-              maybeBodyType = Nothing
-            },
+      { function,
         argument = desugarFunction value maybeParameter
       }
   where
