@@ -12,12 +12,12 @@ import Evaluator.PhallValue (ClosureInner (..), PhallValue (..))
 import Parser.PhallParser (Name)
 
 newtype Environment = Environment
-  { variables :: Map Text PhallValue
+  { getVariables :: Map Text PhallValue
   }
   deriving (Show)
 
 empty :: Environment
-empty = Environment {variables = Map.empty}
+empty = Environment {getVariables = Map.empty}
 
 getVariable :: Environment -> Name -> Except EvaluatorError PhallValue
 getVariable _ "add" =
@@ -46,10 +46,11 @@ getVariable _ "isEqual" =
     return . ClosureValue . ClosureInner $ \second ->
       Builtin.isEqual first second
 getVariable environment variableName =
-  case Map.lookup variableName $ variables environment of
+  case Map.lookup variableName $ getVariables environment of
     Nothing -> Except.throwError VariableNotFound {variableName}
     Just variable -> return variable
 
 withVariable :: Environment -> Name -> PhallValue -> Environment
-withVariable environment variableName value =
-  Environment {variables = Map.insert variableName value $ variables environment}
+withVariable environment variableName value = do
+  let variables = Map.insert variableName value $ getVariables environment
+  environment {getVariables = variables}

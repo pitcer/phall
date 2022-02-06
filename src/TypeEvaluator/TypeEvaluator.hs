@@ -30,8 +30,9 @@ evaluateType
     return (expression, bodyType)
 evaluateType environment DataInstanceExpression {instanceName, instanceFields} = do
   instanceType <- TypeEnvironment.getType environment instanceName
-  case instanceType of
-    DataType typeFields -> do
+  evaluateDataType instanceType
+  where
+    evaluateDataType (DataType typeFields) = do
       let sortedTypeFields = List.sortOn Type.fieldName typeFields
       let sortedInstanceFields = List.sortOn Expression.fieldName instanceFields
       evaluatedInstanceFields <- Monad.mapM evaluateInstanceField sortedInstanceFields
@@ -39,14 +40,14 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
       let result = DataInstanceExpression {instanceName, instanceFields = validatedFields}
       let resultType = ConstantType $ DataTypeName instanceName
       return (result, resultType)
-    _ ->
+    evaluateDataType instanceType =
       Except.throwError $
         TypeMismatchError
           { expectedType = "DataType(" <> instanceName <> ")",
             foundType = Type.getTypeName instanceType,
             context = "evaluate data instance expression"
           }
-  where
+
     evaluateInstanceField DataInstanceField {Expression.fieldName, fieldValue} = do
       (evaluatedValue, evaluatedType) <- evaluateType environment fieldValue
       let result = DataInstanceField {Expression.fieldName, fieldValue = evaluatedValue}
@@ -103,76 +104,68 @@ evaluateType environment LambdaExpression {parameter, maybeParameterType, body, 
     evaluateMaybeType (Just justType) = justType
 evaluateType environment ApplicationExpression {function, argument} = do
   (functionExpression, functionType) <- evaluateType environment function
-  case functionType of
-    LambdaType {Type.parameterType, Type.bodyType} -> do
+  evaluateFunctionType functionExpression functionType
+  where
+    evaluateFunctionType functionExpression LambdaType {Type.parameterType, Type.bodyType} = do
       (argumentExpression, argumentType) <- evaluateType environment argument
-      if parameterType == argumentType
-        then
-          return
-            ( ApplicationExpression
-                { function = functionExpression,
-                  argument = argumentExpression
-                },
-              bodyType
-            )
-        else
-          Except.throwError $
-            TypeMismatchError
-              { expectedType = Type.getTypeName parameterType,
-                foundType = Type.getTypeName argumentType,
-                context = "evaluate application expression"
+      Monad.unless (parameterType == argumentType) . Except.throwError $
+        TypeMismatchError
+          { expectedType = Type.getTypeName parameterType,
+            foundType = Type.getTypeName argumentType,
+            context = "evaluate application expression"
+          }
+      let result =
+            ApplicationExpression
+              { function = functionExpression,
+                argument = argumentExpression
               }
-    _ ->
+      return (result, bodyType)
+    evaluateFunctionType _ functionType =
       Except.throwError $
         TypeMismatchError
-          { expectedType = "Closure",
-            foundType = "?",
+          { expectedType = "Lambda",
+            foundType = Type.getTypeName functionType,
             context = "evaluate application expression"
           }
 evaluateType environment (ListExpression list) = do
   evaluatedList <- mapM (evaluateType environment) list
   let (patchedList, elementsTypes) = unzip evaluatedList
   let listType = getListType elementsTypes
-  if Prelude.all (listType ==) elementsTypes
-    then return (ListExpression patchedList, ListType listType)
-    else
-      Except.throwError $
-        TypeMismatchError
-          { expectedType = Type.getTypeName listType,
-            foundType = "",
-            context = "evaluate list expression"
-          }
+  Monad.unless (Prelude.all (listType ==) elementsTypes) . Except.throwError $
+    TypeMismatchError
+      { expectedType = Type.getTypeName listType,
+        foundType = "",
+        context = "evaluate list expression"
+      }
+  return (ListExpression patchedList, ListType listType)
   where
     getListType [] = AnyType
     getListType types = Prelude.head types
 evaluateType environment ConditionalExpression {condition, positive, negative} = do
   (conditionExpression, conditionType) <- evaluateType environment condition
-  case conditionType of
-    ConstantType BooleanType -> do
+  evaluateConditionType conditionExpression conditionType
+  where
+    evaluateConditionType conditionExpression (ConstantType BooleanType) = do
       (positiveExpression, positiveType) <- evaluateType environment positive
       (negativeExpression, negativeType) <- evaluateType environment negative
-      if positiveType == negativeType
-        then
-          return
-            ( ConditionalExpression
-                { condition = conditionExpression,
-                  positive = positiveExpression,
-                  negative = negativeExpression
-                },
-              positiveType
-            )
-        else
-          Except.throwError $
-            TypeMismatchError
-              { expectedType = Type.getTypeName positiveType,
-                foundType = Type.getTypeName negativeType,
-                context = "evaluate conditional expression"
+      Monad.unless (positiveType == negativeType) . Except.throwError $
+        TypeMismatchError
+          { expectedType = Type.getTypeName positiveType,
+            foundType = Type.getTypeName negativeType,
+            context = "evaluate conditional expression"
+          }
+      let result =
+            ConditionalExpression
+              { condition = conditionExpression,
+                positive = positiveExpression,
+                negative = negativeExpression
               }
-    foundType ->
+      return (result, positiveType)
+    evaluateConditionType _ conditionType =
       Except.throwError $
         TypeMismatchError
           { expectedType = "Boolean",
-            foundType = Type.getTypeName foundType,
+            foundType = Type.getTypeName conditionType,
             context = "evalueate conditional expression"
           }
 evaluateType _ expression@(ConstantExpression constant) =

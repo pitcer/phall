@@ -24,26 +24,32 @@ evaluate environment DataInstanceExpression {instanceFields} = do
       value <- evaluate environment fieldValue
       return $ Map.insert fieldName value fields
 evaluate environment LambdaExpression {parameter, body} =
-  return . ClosureValue . ClosureInner $
-    \argument -> evaluate (Environment.withVariable environment parameter argument) body
+  return . ClosureValue . ClosureInner $ evaluateArgument
+  where
+    evaluateArgument argument =
+      evaluate (Environment.withVariable environment parameter argument) body
 evaluate environment ApplicationExpression {function, argument} = do
   evaluatedFunction <- evaluate environment function
-  case evaluatedFunction of
-    ClosureValue (ClosureInner closure) -> do
+  evaluateClosure evaluatedFunction
+  where
+    evaluateClosure (ClosureValue (ClosureInner closure)) = do
       evaluatedArgument <- evaluate environment argument
       closure evaluatedArgument
-    _ -> Except.throwError $ InvalidTypeError {correctType = "Closure", actualType = "?"}
+    evaluateClosure _ =
+      Except.throwError $ InvalidTypeError {correctType = "Closure", actualType = "?"}
 evaluate environment (ListExpression list) = do
   evaluatedList <- mapM (evaluate environment) list
   return $ ListValue evaluatedList
 evaluate environment ConditionalExpression {condition, positive, negative} = do
   value <- evaluate environment condition
-  case value of
-    BooleanValue booleanValue ->
-      if booleanValue
+  evaluateValue value
+  where
+    evaluateValue (BooleanValue value) =
+      if value
         then evaluate environment positive
         else evaluate environment negative
-    _ -> Except.throwError $ InvalidTypeError {correctType = "Boolean", actualType = "?"}
+    evaluateValue _ = do
+      Except.throwError $ InvalidTypeError {correctType = "Boolean", actualType = "?"}
 evaluate _ (ConstantExpression constant) =
   return $ evaluateConstant constant
 evaluate environment (VariableExpression name) =
