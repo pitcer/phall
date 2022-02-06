@@ -4,6 +4,7 @@
 module Error
   ( PhallError (..),
     EvaluatorError (..),
+    TypeError (..),
     ParserError,
     Error (..),
   )
@@ -17,9 +18,12 @@ class Error a where
   message :: a -> Text
 
 data PhallError
-  = EvaluatorError EvaluatorError
-  | ParserError ParserError
+  = ParserError ParserError
+  | TypeError TypeError
+  | EvaluatorError EvaluatorError
   deriving (Show)
+
+type ParserError = ParseErrorBundle ParsecStream ParsecError
 
 data EvaluatorError
   = InvalidTypeError
@@ -37,4 +41,18 @@ instance Error EvaluatorError where
   message VariableNotFound {variableName} =
     "Variable '" <> variableName <> "' not found in environment"
 
-type ParserError = ParseErrorBundle ParsecStream ParsecError
+data TypeError
+  = TypeMismatchError
+      { expectedType :: Text,
+        foundType :: Text
+      }
+  | TypeNotFoundError
+      { typeVariableName :: Text
+      }
+  deriving (Show)
+
+instance Error TypeError where
+  message TypeMismatchError {expectedType, foundType} =
+    "Invalid type, expected '" <> expectedType <> "' but get '" <> foundType <> "' instead"
+  message TypeNotFoundError {typeVariableName} =
+    "Type for variable '" <> typeVariableName <> "' not found in type environment"

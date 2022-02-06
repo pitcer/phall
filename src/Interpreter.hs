@@ -6,9 +6,11 @@ import Data.Text.Lazy.IO as TextIO
 import Error
 import Evaluator.Environment as Environment
 import Evaluator.PhallEvaluator as Evaluator
-import PhallParser as Parser
+import Parser.PhallParser as Parser
+import Parser.PhallType as Type
 import Text.Megaparsec as Megaparsec
 import Text.Pretty.Simple as PrettySimple
+import TypeEvaluator.TypeEvaluator as TypeEvaluator
 
 type ExceptIO e a = ExceptT e IO a
 
@@ -17,18 +19,26 @@ runInterpreter = do
   result <- Except.runExceptT interpret
   case result of
     Left (ParserError errorBundle) -> Prelude.putStrLn $ Megaparsec.errorBundlePretty errorBundle
-    Left (EvaluatorError evaluatorError) -> print $ message evaluatorError
+    Left (TypeError typeError) -> print $ Error.message typeError
+    Left (EvaluatorError evaluatorError) -> print $ Error.message evaluatorError
     Right _ -> return ()
 
 interpret :: ExceptIO PhallError ()
 interpret = do
   expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse "playground/test.phall"
   Except.liftIO $ PrettySimple.pPrint expression
+  (typedExpression, expressionType) <-
+    Except.liftEither
+      . Except.runExcept
+      . Except.withExceptT TypeError
+      $ TypeEvaluator.evaluate expression
+  Except.liftIO $ PrettySimple.pPrint typedExpression
+  Except.liftIO . TextIO.putStrLn $ Type.getTypeName expressionType
   value <-
     Except.liftEither
       . Except.runExcept
       . Except.withExceptT EvaluatorError
-      $ Evaluator.evaluate Environment.empty expression
+      $ Evaluator.evaluate Environment.empty typedExpression
   Except.liftIO $ PrettySimple.pPrint value
 
 parseFromFile ::

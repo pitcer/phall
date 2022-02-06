@@ -9,7 +9,7 @@ import Data.Text.Lazy (Text)
 import Error (EvaluatorError (..))
 import Evaluator.Builtin as Builtin
 import Evaluator.PhallValue (ClosureInner (..), PhallValue (..))
-import PhallParser (VariableName)
+import Parser.PhallParser (VariableName)
 
 newtype Environment = Environment
   { variables :: Map Text PhallValue

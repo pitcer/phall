@@ -4,8 +4,8 @@ module ParserSpec where
 
 import Data.Text.Lazy (Text)
 import Error
-import PhallParser (PhallConstant (..), PhallExpression (..))
-import qualified PhallParser as Parser (parse)
+import Parser.PhallParser (PhallConstant (..), PhallExpression (..))
+import qualified Parser.PhallParser as Parser (parse)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import qualified Text.Megaparsec as Megaparsec (parse)
 
@@ -101,9 +101,11 @@ spec = do
         `shouldBe` Right
           ( LambdaExpression
               { parameter = "a",
+                maybeParameterType = Nothing,
                 body =
                   LambdaExpression
                     { parameter = "b",
+                      maybeParameterType = Nothing,
                       body =
                         ApplicationExpression
                           { function =
@@ -112,8 +114,10 @@ spec = do
                                   argument = VariableExpression "a"
                                 },
                             argument = VariableExpression "b"
-                          }
-                    }
+                          },
+                      maybeBodyType = Nothing
+                    },
+                maybeBodyType = Nothing
               }
           )
 

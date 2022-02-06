@@ -28,6 +28,7 @@ dependencies:
   - pretty-simple
   - hspec
   - template-haskell
+  - monad-extras
 
 library:
   source-dirs: src

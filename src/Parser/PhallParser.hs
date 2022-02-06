@@ -1,7 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module PhallParser
+module Parser.PhallParser
   ( PhallExpression (..),
     PhallConstant (..),
     parse,
@@ -9,39 +9,11 @@ module PhallParser
   )
 where
 
-import Data.Text.Lazy (Text)
 import Lexer.PhallLexer as Lexer
-import Lexer.Symbol
+import Lexer.Symbol as Symbol
+import Parser.PhallExpression
+import Parser.PhallType as PhallType
 import qualified Text.Megaparsec as Megaparsec
-
-data PhallExpression
-  = LambdaExpression
-      { parameter :: VariableName,
-        body :: PhallExpression
-      }
-  | ApplicationExpression
-      { function :: PhallExpression,
-        argument :: PhallExpression
-      }
-  | ConditionalExpression
-      { condition :: PhallExpression,
-        positive :: PhallExpression,
-        negative :: PhallExpression
-      }
-  | ListExpression [PhallExpression]
-  | ConstantExpression PhallConstant
-  | VariableExpression VariableName
-  deriving (Show, Eq)
-
-type VariableName = Text
-
-data PhallConstant
-  = BooleanConstant Bool
-  | IntegerConstant Integer
-  | FloatConstant Double
-  | CharConstant Char
-  | StringConstant Text
-  deriving (Show, Eq)
 
 parse :: Parser PhallExpression
 parse = Megaparsec.between Lexer.spaceConsumer Megaparsec.eof parseExpression
@@ -80,12 +52,19 @@ simpleExpressions =
 
 parseLambda :: Parser PhallExpression
 parseLambda = do
-  parameters <- Megaparsec.some Lexer.tokenizeIdentifier
+  parameters <- Megaparsec.some parseParameter
   Lexer.tokenizeSymbol RightArrowSymbol
   body <- parseExpression
   return $
     foldr
-      (\parameter previousLambdas -> LambdaExpression {parameter, body = previousLambdas})
+      ( \(parameter, parameterType) previousLambdas ->
+          LambdaExpression
+            { parameter,
+              maybeParameterType = parameterType,
+              body = previousLambdas,
+              maybeBodyType = Nothing
+            }
+      )
       body
       parameters
 
@@ -104,20 +83,43 @@ parseApplication = do
 parseLet :: Parser PhallExpression
 parseLet = do
   Lexer.tokenizeKeyword LetKeyword
-  variableName <- Lexer.tokenizeIdentifier
-  maybeParameter <- Megaparsec.optional Lexer.tokenizeIdentifier
+  (variableName, variableType) <- parseParameter
+  maybeParameter <- Megaparsec.optional parseParameter
   Lexer.tokenizeSymbol EqualitySymbol
   value <- parseExpression
   Lexer.tokenizeKeyword InKeyword
   body <- parseExpression
   return
     ApplicationExpression
-      { function = LambdaExpression {parameter = variableName, body},
+      { function =
+          LambdaExpression
+            { parameter = variableName,
+              maybeParameterType = variableType,
+              body,
+              maybeBodyType = Nothing
+            },
         argument = desugarFunction value maybeParameter
       }
   where
     desugarFunction value Nothing = value
-    desugarFunction body (Just parameter) = LambdaExpression {parameter, body}
+    desugarFunction body (Just (parameter, parameterType)) =
+      LambdaExpression
+        { parameter,
+          maybeParameterType = parameterType,
+          body,
+          maybeBodyType = Nothing
+        }
+
+parseParameter :: Parser (VariableName, Maybe PhallType)
+parseParameter = do
+  name <- Lexer.tokenizeIdentifier
+  typeKeyword <- parseType
+  return (name, fmap PhallType.fromTypeKeyword typeKeyword)
+
+parseType :: Parser (Maybe TypeKeyword)
+parseType = do
+  typeName <- Megaparsec.optional $ Lexer.tokenizeSymbol ColonSymbol *> Lexer.tokenizeIdentifier
+  return $ typeName >>= Symbol.fromName
 
 parseConditional :: Parser PhallExpression
 parseConditional = do

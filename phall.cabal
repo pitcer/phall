@@ -34,7 +34,11 @@ library
       Interpreter
       Lexer.PhallLexer
       Lexer.Symbol
-      PhallParser
+      Parser.PhallExpression
+      Parser.PhallParser
+      Parser.PhallType
+      TypeEvaluator.TypeEnvironment
+      TypeEvaluator.TypeEvaluator
   other-modules:
       Paths_phall
   hs-source-dirs:
@@ -44,6 +48,7 @@ library
     , containers
     , hspec
     , megaparsec
+    , monad-extras
     , mtl
     , pretty-simple
     , template-haskell
@@ -63,6 +68,7 @@ executable phall-exe
     , containers
     , hspec
     , megaparsec
+    , monad-extras
     , mtl
     , phall
     , pretty-simple
@@ -86,6 +92,7 @@ test-suite phall-test
     , containers
     , hspec
     , megaparsec
+    , monad-extras
     , mtl
     , phall
     , pretty-simple

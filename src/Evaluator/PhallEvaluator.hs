@@ -9,7 +9,7 @@ import Error (EvaluatorError (..))
 import Evaluator.Environment (Environment)
 import qualified Evaluator.Environment as Environment
 import Evaluator.PhallValue
-import PhallParser
+import Parser.PhallParser
 
 evaluate :: Environment -> PhallExpression -> Except EvaluatorError PhallValue
 evaluate environment LambdaExpression {parameter, body} =

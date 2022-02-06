@@ -1,19 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lexer.Symbol
-  ( EnumValues (..),
-    Keyword (..),
-    Symbol (..),
-  )
-where
+module Lexer.Symbol where
 
+import qualified Data.List as List
 import Data.Text.Lazy as Text
 
 class (Enum a, Bounded a) => EnumValues a where
-  name :: a -> Text
+  enumName :: a -> Text
 
-  values :: [a]
-  values = [minBound .. maxBound]
+  enumValues :: [a]
+  enumValues = [minBound .. maxBound]
+
+  fromName :: Text -> Maybe a
+  fromName name =
+    List.find (\element -> name == enumName element) enumValues
 
 data Keyword
   = IfKeyword
@@ -26,13 +26,30 @@ data Keyword
   deriving (Enum, Bounded)
 
 instance EnumValues Keyword where
-  name IfKeyword = "if"
-  name ThenKeyword = "then"
-  name ElseKeyword = "else"
-  name LetKeyword = "let"
-  name InKeyword = "in"
-  name TrueKeyword = "true"
-  name FalseKeyword = "false"
+  enumName IfKeyword = "if"
+  enumName ThenKeyword = "then"
+  enumName ElseKeyword = "else"
+  enumName LetKeyword = "let"
+  enumName InKeyword = "in"
+  enumName TrueKeyword = "true"
+  enumName FalseKeyword = "false"
+
+data TypeKeyword
+  = AnyTypeKeyword
+  | BooleanTypeKeyword
+  | IntegerTypeKeyword
+  | FloatTypeKeyword
+  | CharTypeKeyword
+  | StringTypeKeyword
+  deriving (Enum, Bounded)
+
+instance EnumValues TypeKeyword where
+  enumName AnyTypeKeyword = "Any"
+  enumName BooleanTypeKeyword = "Boolean"
+  enumName IntegerTypeKeyword = "Integer"
+  enumName FloatTypeKeyword = "Float"
+  enumName CharTypeKeyword = "Char"
+  enumName StringTypeKeyword = "String"
 
 data Symbol
   = LeftParenthesisSymbol
@@ -40,21 +57,25 @@ data Symbol
   | LeftSquareBracket
   | RightSquareBracket
   | RightArrowSymbol
+  | QuestionMark
   | EqualitySymbol
   | CommaSymbol
+  | ColonSymbol
   | QuotationSymbol
   | ApostropheSymbol
   | LineCommentSymbol
   deriving (Enum, Bounded)
 
 instance EnumValues Symbol where
-  name LeftParenthesisSymbol = "("
-  name RightParenthesisSymbol = ")"
-  name LeftSquareBracket = "["
-  name RightSquareBracket = "]"
-  name RightArrowSymbol = "->"
-  name EqualitySymbol = "="
-  name CommaSymbol = ","
-  name QuotationSymbol = "\""
-  name ApostropheSymbol = "'"
-  name LineCommentSymbol = "#"
+  enumName LeftParenthesisSymbol = "("
+  enumName RightParenthesisSymbol = ")"
+  enumName LeftSquareBracket = "["
+  enumName RightSquareBracket = "]"
+  enumName RightArrowSymbol = "->"
+  enumName QuestionMark = "?"
+  enumName EqualitySymbol = "="
+  enumName CommaSymbol = ","
+  enumName ColonSymbol = ":"
+  enumName QuotationSymbol = "\""
+  enumName ApostropheSymbol = "'"
+  enumName LineCommentSymbol = "#"

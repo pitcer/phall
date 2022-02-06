@@ -11,6 +11,7 @@ module Lexer.PhallLexer
     tokenizeKeyword,
     betweenParenthesis,
     spaceConsumer,
+    lexeme
   )
 where
 
@@ -54,7 +55,7 @@ tokenizeSymbol = do
 tokenizeKeyword :: Keyword -> Parser ()
 tokenizeKeyword keyword =
   lexeme $
-    Char.string (name keyword)
+    Char.string (enumName keyword)
       *> Megaparsec.notFollowedBy identifierNextCharacters
 
 tokenizeIdentifier :: Parser Text
@@ -63,7 +64,7 @@ tokenizeIdentifier =
     identifier <-
       fmap Text.pack $
         (:) <$> identifierFirstCharacters <*> Megaparsec.many identifierNextCharacters
-    Monad.guard $ notElem identifier $ Prelude.map name (values :: [Keyword])
+    Monad.guard $ notElem identifier $ Prelude.map enumName (enumValues :: [Keyword])
     return identifier
 
 identifierFirstCharacters :: Parser Char
@@ -86,10 +87,10 @@ spaceConsumer =
     lineComment
     Megaparsec.empty
   where
-    lineComment = Lexer.skipLineComment $ name LineCommentSymbol
+    lineComment = Lexer.skipLineComment $ enumName LineCommentSymbol
 
 lexeme :: Parser a -> Parser a
 lexeme = Lexer.lexeme spaceConsumer
 
 symbol :: (EnumValues a) => a -> Parser Text
-symbol = Lexer.symbol spaceConsumer . name
+symbol = Lexer.symbol spaceConsumer . enumName
