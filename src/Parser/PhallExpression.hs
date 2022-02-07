@@ -1,10 +1,17 @@
 module Parser.PhallExpression where
 
 import Data.Text.Lazy as Text
+import FullSet
 import Parser.PhallType
 
 data PhallExpression
-  = DataDeclarationExpression
+  = ImportExpression
+      { importSource :: PhallExpression,
+        importedItems :: FullSet Name,
+        importBody :: PhallExpression
+      }
+  | ExportExpression (FullSet Name)
+  | DataDeclarationExpression
       { declarationName :: Name,
         declarationFields :: [DataTypeField],
         declarationBody :: PhallExpression

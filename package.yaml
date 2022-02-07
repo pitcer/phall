@@ -29,6 +29,7 @@ dependencies:
   - hspec
   - template-haskell
   - monad-extras
+  - list-t
 
 library:
   source-dirs: src

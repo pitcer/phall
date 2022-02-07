@@ -22,6 +22,9 @@ data Keyword
   | LetKeyword
   | InKeyword
   | DataKeyword
+  | ImportKeyword
+  | ExportKeyword
+  | FromKeyword
   | TrueKeyword
   | FalseKeyword
   deriving (Enum, Bounded)
@@ -33,6 +36,9 @@ instance EnumValues Keyword where
   enumName LetKeyword = "let"
   enumName InKeyword = "in"
   enumName DataKeyword = "data"
+  enumName ImportKeyword = "import"
+  enumName ExportKeyword = "export"
+  enumName FromKeyword = "from"
   enumName TrueKeyword = "true"
   enumName FalseKeyword = "false"
 
@@ -61,12 +67,14 @@ data Symbol
   | LeftCurlyBracket
   | RightCurlyBracket
   | RightArrowSymbol
+  | AsteriskSymbol
   | QuestionMark
   | EqualitySymbol
   | CommaSymbol
   | ColonSymbol
   | QuotationSymbol
   | ApostropheSymbol
+  | GraveSymbol
   | LineCommentSymbol
   deriving (Enum, Bounded)
 
@@ -78,10 +86,12 @@ instance EnumValues Symbol where
   enumName LeftCurlyBracket = "{"
   enumName RightCurlyBracket = "}"
   enumName RightArrowSymbol = "->"
+  enumName AsteriskSymbol = "*"
   enumName QuestionMark = "?"
   enumName EqualitySymbol = "="
   enumName CommaSymbol = ","
   enumName ColonSymbol = ":"
   enumName QuotationSymbol = "\""
   enumName ApostropheSymbol = "'"
+  enumName GraveSymbol = "`"
   enumName LineCommentSymbol = "#"

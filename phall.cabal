@@ -25,19 +25,20 @@ source-repository head
 library
   exposed-modules:
       Common
+      Environment
       Error
       Evaluator.Builtin
       Evaluator.BuiltinTH
-      Evaluator.Environment
       Evaluator.PhallEvaluator
       Evaluator.PhallValue
+      Evaluator.ValueEnvironment
+      FullSet
       Interpreter
       Lexer.PhallLexer
       Lexer.Symbol
       Parser.PhallExpression
       Parser.PhallParser
       Parser.PhallType
-      TypeEvaluator.TypedExpression
       TypeEvaluator.TypeEnvironment
       TypeEvaluator.TypeEvaluator
   other-modules:
@@ -48,6 +49,7 @@ library
       base
     , containers
     , hspec
+    , list-t
     , megaparsec
     , monad-extras
     , mtl
@@ -68,6 +70,7 @@ executable phall-exe
       base
     , containers
     , hspec
+    , list-t
     , megaparsec
     , monad-extras
     , mtl
@@ -92,6 +95,7 @@ test-suite phall-test
       base
     , containers
     , hspec
+    , list-t
     , megaparsec
     , monad-extras
     , mtl

@@ -7,11 +7,12 @@ module Lexer.PhallLexer
     tokenizeSignedInteger,
     tokenizeSymbol,
     tokenizeString,
+    tokenizePath,
     tokenizeChar,
     tokenizeKeyword,
     betweenParenthesis,
     spaceConsumer,
-    lexeme
+    lexeme,
   )
 where
 
@@ -34,9 +35,19 @@ tokenizeChar =
 -- TODO: add escaping
 tokenizeString :: Parser Text
 tokenizeString =
-  fmap Text.pack $ quotation *> Megaparsec.manyTill Lexer.charLiteral quotation
+  tokenizeTextBetween quotation quotation
   where
     quotation = tokenizeSymbol QuotationSymbol
+
+tokenizePath :: Parser Text
+tokenizePath =
+  tokenizeTextBetween grave grave
+  where
+    grave = tokenizeSymbol GraveSymbol
+
+tokenizeTextBetween :: Parser () -> Parser () -> Parser Text
+tokenizeTextBetween start stop =
+  fmap Text.pack $ start *> Megaparsec.manyTill Lexer.charLiteral stop
 
 tokenizeSignedInteger :: Parser Integer
 tokenizeSignedInteger = Lexer.signed spaceConsumer integer

@@ -4,7 +4,7 @@ module ParserSpec where
 
 import Data.Text.Lazy (Text)
 import Error
-import Parser.PhallParser (PhallConstant (..), PhallExpression (..))
+import Parser.PhallExpression
 import qualified Parser.PhallParser as Parser (parse)
 import Test.Hspec (Spec, describe, it, shouldBe)
 import qualified Text.Megaparsec as Megaparsec (parse)

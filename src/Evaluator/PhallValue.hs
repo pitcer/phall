@@ -17,6 +17,7 @@ data PhallValue
   deriving (Show, Eq)
 
 newtype ClosureInner
+  -- TODO: try to explicite save environment
   = ClosureInner (PhallValue -> Except EvaluatorError PhallValue)
 
 instance Show ClosureInner where

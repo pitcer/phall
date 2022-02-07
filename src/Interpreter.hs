@@ -4,15 +4,13 @@ import Common
 import Control.Monad.Except as Except
 import Data.Text.Lazy.IO as TextIO
 import Error
-import Evaluator.Environment as Environment
 import Evaluator.PhallEvaluator as Evaluator
+import Parser.PhallExpression
 import Parser.PhallParser as Parser
 import Parser.PhallType as Type
 import Text.Megaparsec as Megaparsec
 import Text.Pretty.Simple as PrettySimple
 import TypeEvaluator.TypeEvaluator as TypeEvaluator
-
-type ExceptIO e a = ExceptT e IO a
 
 runInterpreter :: IO ()
 runInterpreter = do
@@ -25,7 +23,8 @@ runInterpreter = do
 
 interpret :: ExceptIO PhallError ()
 interpret = do
-  expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse "playground/test.phall"
+  expression <-
+    Except.withExceptT ParserError $ parseFromFile Parser.parse "playground/test.phall"
   Except.liftIO $ PrettySimple.pPrint expression
   (typedExpression, expressionType) <-
     Except.liftEither
@@ -38,11 +37,12 @@ interpret = do
     Except.liftEither
       . Except.runExcept
       . Except.withExceptT EvaluatorError
-      $ Evaluator.evaluate Environment.empty typedExpression
+      $ Evaluator.evaluate typedExpression
   Except.liftIO $ PrettySimple.pPrint value
 
-parseFromFile ::
-  Parser PhallExpression -> String -> ExceptIO ParserError PhallExpression
+type ExceptIO e = ExceptT e IO
+
+parseFromFile :: Parser PhallExpression -> String -> ExceptIO ParserError PhallExpression
 parseFromFile parser file = do
   text <- Except.liftIO $ TextIO.readFile file
   Except.liftEither $ Megaparsec.parse parser file text

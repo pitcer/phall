@@ -1,25 +1,18 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Evaluator.Environment where
+module Evaluator.ValueEnvironment where
 
 import Control.Monad.Except as Except
-import Data.Map as Map
-import Data.Text.Lazy (Text)
+import Environment
 import Error (EvaluatorError (..))
 import Evaluator.Builtin as Builtin
 import Evaluator.PhallValue (ClosureInner (..), PhallValue (..))
-import Parser.PhallParser (Name)
+import Parser.PhallType
 
-newtype Environment = Environment
-  { getVariables :: Map Text PhallValue
-  }
-  deriving (Show)
+type ValueEnvironment = Environment PhallValue
 
-empty :: Environment
-empty = Environment {getVariables = Map.empty}
-
-getVariable :: Environment -> Name -> Except EvaluatorError PhallValue
+getVariable :: ValueEnvironment -> Name -> Except EvaluatorError PhallValue
 getVariable _ "add" =
   return . ClosureValue . ClosureInner $ \first ->
     return . ClosureValue . ClosureInner $ \second ->
@@ -46,11 +39,10 @@ getVariable _ "isEqual" =
     return . ClosureValue . ClosureInner $ \second ->
       Builtin.isEqual first second
 getVariable environment variableName =
-  case Map.lookup variableName $ getVariables environment of
-    Nothing -> Except.throwError VariableNotFound {variableName}
-    Just variable -> return variable
-
-withVariable :: Environment -> Name -> PhallValue -> Environment
-withVariable environment variableName value = do
-  let variables = Map.insert variableName value $ getVariables environment
-  environment {getVariables = variables}
+  handleLookup $ Environment.lookup variableName environment
+  where
+    handleLookup :: Maybe PhallValue -> Except EvaluatorError PhallValue
+    handleLookup Nothing =
+      Except.throwError VariableNotFound {variableName}
+    handleLookup (Just variable) =
+      return variable

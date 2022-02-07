@@ -33,6 +33,8 @@ data EvaluatorError
   | VariableNotFound
       { variableName :: Text
       }
+  | MissingExportInImportedExpressionEvaluatorError
+  | CustomError Text
   deriving (Show)
 
 instance Error EvaluatorError where
@@ -41,6 +43,10 @@ instance Error EvaluatorError where
       <> "' instead"
   message VariableNotFound {variableName} =
     "VariableNotFound: Variable '" <> variableName <> "' not found in environment"
+  message MissingExportInImportedExpressionEvaluatorError =
+    "MissingExportInImportedExpressionEvaluatorError: export not occured in imported expression"
+  message (CustomError text) =
+    "CustomError: " <> text
 
 data TypeError
   = TypeMismatchError
@@ -55,6 +61,8 @@ data TypeError
   | TypeNotFoundError
       { typeVariableName :: Text
       }
+  | ExportInOuterExpressionTypeError
+  | MissingExportInImportedExpressionTypeError
   deriving (Show)
 
 instance Error TypeError where
@@ -70,3 +78,7 @@ instance Error TypeError where
   message TypeNotFoundError {typeVariableName} =
     "TypeNotFoundError: Type for variable '" <> typeVariableName
       <> "' not found in type environment"
+  message ExportInOuterExpressionTypeError =
+    "ExportInOuterExpressionTypeError: export occured in the most outer expression."
+  message MissingExportInImportedExpressionTypeError =
+    "MissingExportInInnerExpressionTypeError: export not occured in imported expression"

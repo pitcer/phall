@@ -1,14 +1,14 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Parser.PhallParser
-  ( PhallExpression (..),
-    PhallConstant (..),
-    parse,
-    Name,
-  )
-where
+module Parser.PhallParser where
 
+import Common
+import Control.Applicative
+import Control.Monad as Monad
+import qualified Data.Set as Set
+import qualified Data.Text.Lazy as Text
+import FullSet
 import Lexer.PhallLexer as Lexer
 import Lexer.Symbol as Symbol
 import Parser.PhallExpression as Expression
@@ -33,11 +33,13 @@ parseInnerExpression =
 betweenParenthesisOrNot ::
   Parser PhallExpression -> Parser PhallExpression -> Parser PhallExpression
 betweenParenthesisOrNot freestandingParser betweenParser =
-  Megaparsec.choice [Megaparsec.try freestandingParser, Lexer.betweenParenthesis betweenParser]
+  Megaparsec.try freestandingParser <|> Lexer.betweenParenthesis betweenParser
 
 complexExpressions :: [Parser PhallExpression]
 complexExpressions =
-  [ Megaparsec.try parseDataDeclaration,
+  [ Megaparsec.try parseImport,
+    Megaparsec.try parseExport,
+    Megaparsec.try parseDataDeclaration,
     Megaparsec.try parseLet,
     Megaparsec.try parseConditional,
     Megaparsec.try parseLambda,
@@ -75,6 +77,38 @@ parseApplication = do
   where
     createApplication previousApplication argument =
       ApplicationExpression {function = previousApplication, argument}
+
+parseImport :: Parser PhallExpression
+parseImport = do
+  Lexer.tokenizeKeyword ImportKeyword
+  importedItems <- parseImportedOrExportedItems
+  Lexer.tokenizeKeyword FromKeyword
+  importSource <- parsePath <|> parseInnerExpression
+  Lexer.tokenizeKeyword InKeyword
+  importBody <- parseExpression
+  return ImportExpression {importSource, importedItems, importBody}
+
+parsePath :: Parser PhallExpression
+parsePath = do
+  path <- Lexer.tokenizePath
+  --  TODO: import from file on given path
+  fail $ Text.unpack ("Tried to import a path: " <> path)
+
+parseExport :: Parser PhallExpression
+parseExport = do
+  Lexer.tokenizeKeyword ExportKeyword
+  ExportExpression <$> parseImportedOrExportedItems
+
+parseImportedOrExportedItems :: Parser (FullSet Name)
+parseImportedOrExportedItems =
+  Megaparsec.choice
+    [ Full <$ Lexer.tokenizeSymbol AsteriskSymbol,
+      do
+        items <- Megaparsec.some $ Megaparsec.try Lexer.tokenizeIdentifier
+        let itemsSet = Set.fromList items
+        Monad.guard $ length items == length itemsSet
+        return $ NotFull itemsSet
+    ]
 
 parseDataDeclaration :: Parser PhallExpression
 parseDataDeclaration = do
