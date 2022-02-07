@@ -16,6 +16,7 @@ getType _ "sub" = return Builtin.arithmeticOperationType
 getType _ "mul" = return Builtin.arithmeticOperationType
 getType _ "div" = return Builtin.arithmeticOperationType
 getType _ "fold" = return Builtin.foldType
+getType _ "cons" = return Builtin.consType
 getType _ "isEqual" = return Builtin.isEqualType
 getType environment typeName =
   handleLookup $ Environment.lookup typeName environment

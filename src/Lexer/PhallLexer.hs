@@ -13,6 +13,7 @@ module Lexer.PhallLexer
     betweenParenthesis,
     spaceConsumer,
     lexeme,
+    symbol
   )
 where
 

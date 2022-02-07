@@ -8,6 +8,7 @@ import Control.Monad.Except as Except
 import Control.Monad.State as State
 import qualified Data.List as List
 import Data.Maybe as Maybe
+import Data.Text.Lazy as Text
 import Environment
 import Error (TypeError (..))
 import ListT
@@ -152,6 +153,16 @@ evaluateType environment ApplicationExpression {function, argument} = do
                 argument = argumentExpression
               }
       return (result, bodyType)
+    -- TODO: remove temporary fix
+    evaluateFunctionType functionExpression AnyType = do
+      (argumentExpression, _) <- evaluateType environment argument
+      let result =
+            ApplicationExpression
+              { function = functionExpression,
+                argument = argumentExpression
+              }
+      return (result, AnyType)
+    --
     evaluateFunctionType _ functionType =
       Except.throwError $
         TypeMismatchError

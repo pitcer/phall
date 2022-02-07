@@ -34,6 +34,10 @@ getVariable _ "fold" =
     return . ClosureValue . ClosureInner $ \firstElement ->
       return . ClosureValue . ClosureInner $ \accumulator ->
         Builtin.fold closure firstElement accumulator
+getVariable _ "cons" =
+  return . ClosureValue . ClosureInner $ \element ->
+    return . ClosureValue . ClosureInner $ \list ->
+      Builtin.cons element list
 getVariable _ "isEqual" =
   return . ClosureValue . ClosureInner $ \first ->
     return . ClosureValue . ClosureInner $ \second ->

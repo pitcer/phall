@@ -58,6 +58,20 @@ foldType =
       AnyType
     ]
 
+cons :: PhallValue -> PhallValue -> Except EvaluatorError PhallValue
+cons element (ListValue list) =
+  return . ListValue $ element : list
+cons _ _ =
+  Except.throwError $ InvalidTypeError "a -> [a] -> [a]" ""
+
+consType :: PhallType
+consType =
+  createNestedLambdas
+    [ AnyType,
+      ListType AnyType,
+      ListType AnyType
+    ]
+
 unwrapClosure ::
   PhallValue -> Except EvaluatorError (PhallValue -> Except EvaluatorError PhallValue)
 unwrapClosure (ClosureValue (ClosureInner closure)) = return closure
