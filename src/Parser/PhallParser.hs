@@ -115,9 +115,7 @@ parseDataDeclaration = do
   Lexer.tokenizeKeyword DataKeyword
   name <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol EqualitySymbol
-  Lexer.tokenizeSymbol LeftCurlyBracket
   fields <- Megaparsec.sepBy parseField $ Lexer.tokenizeSymbol CommaSymbol
-  Lexer.tokenizeSymbol RightCurlyBracket
   Lexer.tokenizeKeyword InKeyword
   body <- parseExpression
   return
