@@ -2,7 +2,6 @@
 
 module Lexer.Symbol where
 
-import qualified Data.List as List
 import Data.Text.Lazy as Text
 
 class (Enum a, Bounded a) => EnumValues a where
@@ -10,10 +9,6 @@ class (Enum a, Bounded a) => EnumValues a where
 
   enumValues :: [a]
   enumValues = [minBound .. maxBound]
-
-  fromName :: Text -> Maybe a
-  fromName name =
-    List.find (\element -> name == enumName element) enumValues
 
 data Keyword
   = IfKeyword

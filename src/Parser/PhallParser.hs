@@ -30,11 +30,6 @@ parseInnerExpression =
     (Megaparsec.choice simpleExpressions)
     (Megaparsec.choice complexExpressions)
 
-betweenParenthesisOrNot ::
-  Parser PhallExpression -> Parser PhallExpression -> Parser PhallExpression
-betweenParenthesisOrNot freestandingParser betweenParser =
-  Megaparsec.try freestandingParser <|> Lexer.betweenParenthesis betweenParser
-
 complexExpressions :: [Parser PhallExpression]
 complexExpressions =
   [ Megaparsec.try parseImport,
@@ -51,7 +46,7 @@ simpleExpressions =
   [ Megaparsec.try parseDataInstance,
     Megaparsec.try parseList,
     ConstantExpression <$> parseConstant,
-    parseIdentifier
+    parseVariable
   ]
 
 parseLambda :: Parser PhallExpression
@@ -63,7 +58,7 @@ parseLambda = do
 
 parseApplication :: Parser PhallExpression
 parseApplication = do
-  function <- betweenParenthesisOrNot parseIdentifier parseExpression
+  function <- betweenParenthesisOrNot parseVariable parseExpression
   arguments <- Megaparsec.some parseInnerExpression
   return $ foldl createApplication function arguments
   where
@@ -136,12 +131,8 @@ parseField :: Parser DataTypeField
 parseField = do
   fieldName <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol ColonSymbol
-  typeName <- Lexer.tokenizeIdentifier -- TODO: replace with parseType
-  let typeKeyword = Symbol.fromName typeName
-  let maybeType = fmap Type.fromTypeKeyword typeKeyword
-  case maybeType of
-    Nothing -> fail "unknown type token"
-    Just fieldType -> return DataTypeField {Type.fieldName, Type.fieldType}
+  fieldType <- parseType
+  return DataTypeField {Type.fieldName, Type.fieldType}
 
 parseLet :: Parser PhallExpression
 parseLet = do
@@ -168,6 +159,16 @@ parseLet = do
     desugarFunction body (Just parameters) =
       desugarMultiparameterLambda body parameters
 
+parseParameter :: Parser LambdaParameter
+parseParameter = do
+  name <- Lexer.tokenizeIdentifier
+  parameterType <- Megaparsec.optional $ Lexer.tokenizeSymbol ColonSymbol *> parseType
+  return
+    LambdaParameter
+      { parameterName = name,
+        maybeParameterType = parameterType
+      }
+
 desugarMultiparameterLambda :: PhallExpression -> [LambdaParameter] -> PhallExpression
 desugarMultiparameterLambda = foldr createLambda
   where
@@ -178,20 +179,47 @@ desugarMultiparameterLambda = foldr createLambda
           maybeBodyType = Nothing
         }
 
-parseParameter :: Parser LambdaParameter
-parseParameter = do
-  name <- Lexer.tokenizeIdentifier
-  typeKeyword <- parseType
-  return
-    LambdaParameter
-      { parameterName = name,
-        maybeParameterType = fmap Type.fromTypeKeyword typeKeyword
-      }
-
-parseType :: Parser (Maybe TypeKeyword)
+parseType :: Parser PhallType
 parseType = do
-  typeName <- Megaparsec.optional $ Lexer.tokenizeSymbol ColonSymbol *> Lexer.tokenizeIdentifier
-  return $ typeName >>= Symbol.fromName
+  betweenParenthesisOrNot innerParser innerParser
+  where
+    innerParser = Megaparsec.choice $ complexTypes ++ simpleTypes
+
+parseInnerType :: Parser PhallType
+parseInnerType =
+  betweenParenthesisOrNot
+    (Megaparsec.choice simpleTypes)
+    (Megaparsec.choice complexTypes)
+
+simpleTypes :: [Parser PhallType]
+simpleTypes =
+  [parseListType] ++ parseTypeKeywords ++ [parseDataType]
+  where
+    parseListType = Megaparsec.try $ do
+      Lexer.tokenizeSymbol LeftSquareBracket
+      listType <- parseType
+      Lexer.tokenizeSymbol RightSquareBracket
+      return $ ListType listType
+
+    parseTypeKeywords =
+      map (Megaparsec.try . fmap Type.fromTypeKeyword . Lexer.symbol) enumValues
+
+    parseDataType =
+      Megaparsec.try $ ConstantType . DataTypeName <$> Lexer.tokenizeIdentifier
+
+complexTypes :: [Parser PhallType]
+complexTypes =
+  [parseLambdaType]
+  where
+    parseLambdaType = Megaparsec.try $ do
+      parameterType <- parseInnerType
+      Lexer.tokenizeSymbol RightArrowSymbol
+      bodyType <- parseType
+      return $ LambdaType {parameterType, bodyType}
+
+betweenParenthesisOrNot :: Parser a -> Parser a -> Parser a
+betweenParenthesisOrNot freestandingParser betweenParser =
+  Megaparsec.try freestandingParser <|> Lexer.betweenParenthesis betweenParser
 
 parseConditional :: Parser PhallExpression
 parseConditional = do
@@ -229,6 +257,6 @@ parseBoolean =
       False <$ Lexer.tokenizeKeyword FalseKeyword
     ]
 
-parseIdentifier :: Parser PhallExpression
-parseIdentifier =
+parseVariable :: Parser PhallExpression
+parseVariable =
   VariableExpression <$> Lexer.tokenizeIdentifier

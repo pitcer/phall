@@ -13,7 +13,7 @@ module Lexer.PhallLexer
     betweenParenthesis,
     spaceConsumer,
     lexeme,
-    symbol
+    symbol,
   )
 where
 
@@ -104,5 +104,5 @@ spaceConsumer =
 lexeme :: Parser a -> Parser a
 lexeme = Lexer.lexeme spaceConsumer
 
-symbol :: (EnumValues a) => a -> Parser Text
-symbol = Lexer.symbol spaceConsumer . enumName
+symbol :: (EnumValues a) => a -> Parser a
+symbol enum = enum <$ Lexer.symbol spaceConsumer (enumName enum)

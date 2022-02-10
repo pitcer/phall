@@ -100,12 +100,18 @@ spec = do
       parse "a b -> f a b"
         `shouldBe` Right
           ( LambdaExpression
-              { parameter = "a",
-                maybeParameterType = Nothing,
+              { parameter =
+                  LambdaParameter
+                    { parameterName = "a",
+                      maybeParameterType = Nothing
+                    },
                 body =
                   LambdaExpression
-                    { parameter = "b",
-                      maybeParameterType = Nothing,
+                    { parameter =
+                        LambdaParameter
+                          { parameterName = "b",
+                            maybeParameterType = Nothing
+                          },
                       body =
                         ApplicationExpression
                           { function =
