@@ -6,6 +6,7 @@ module Parser.PhallParser where
 import Common
 import Control.Applicative
 import Control.Monad as Monad
+import Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Data.Text.Lazy as Text
 import FullSet
@@ -147,7 +148,7 @@ parseLet = do
         LambdaExpression
           { parameter = variable,
             body,
-            maybeBodyType = Nothing
+            Expression.bodyType = UnknownType
           }
   return
     ApplicationExpression
@@ -161,13 +162,11 @@ parseLet = do
 
 parseParameter :: Parser LambdaParameter
 parseParameter = do
-  name <- Lexer.tokenizeIdentifier
-  parameterType <- Megaparsec.optional $ Lexer.tokenizeSymbol ColonSymbol *> parseType
-  return
-    LambdaParameter
-      { parameterName = name,
-        maybeParameterType = parameterType
-      }
+  parameterName <- Lexer.tokenizeIdentifier
+  parameterType <-
+    Maybe.fromMaybe UnknownType
+      <$> Megaparsec.optional (Lexer.tokenizeSymbol ColonSymbol *> parseType)
+  return LambdaParameter {parameterName, Expression.parameterType}
 
 desugarMultiparameterLambda :: PhallExpression -> [LambdaParameter] -> PhallExpression
 desugarMultiparameterLambda = foldr createLambda
@@ -176,7 +175,7 @@ desugarMultiparameterLambda = foldr createLambda
       LambdaExpression
         { parameter,
           body = previousLambda,
-          maybeBodyType = Nothing
+          Expression.bodyType = UnknownType
         }
 
 parseType :: Parser PhallType
@@ -215,7 +214,7 @@ complexTypes =
       parameterType <- parseInnerType
       Lexer.tokenizeSymbol RightArrowSymbol
       bodyType <- parseType
-      return $ LambdaType {parameterType, bodyType}
+      return $ LambdaType {Type.parameterType, Type.bodyType}
 
 betweenParenthesisOrNot :: Parser a -> Parser a -> Parser a
 betweenParenthesisOrNot freestandingParser betweenParser =

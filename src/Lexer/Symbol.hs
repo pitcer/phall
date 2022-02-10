@@ -22,6 +22,7 @@ data Keyword
   | FromKeyword
   | TrueKeyword
   | FalseKeyword
+  | NoneKeyword
   deriving (Enum, Bounded)
 
 instance EnumValues Keyword where
@@ -36,6 +37,7 @@ instance EnumValues Keyword where
   enumName FromKeyword = "from"
   enumName TrueKeyword = "true"
   enumName FalseKeyword = "false"
+  enumName NoneKeyword = "none"
 
 data TypeKeyword
   = AnyTypeKeyword

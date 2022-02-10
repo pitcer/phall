@@ -100,18 +100,18 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
               context = "evaluate data instance expression"
             }
         return field
-evaluateType environment LambdaExpression {parameter, body, maybeBodyType} = do
-  let parameterType = evaluateMaybeType $ Expression.maybeParameterType parameter
+evaluateType environment LambdaExpression {parameter, body, Expression.bodyType} = do
+  let parameterType = evaluateParameterType $ Expression.parameterType parameter
   let parameterName = Expression.parameterName parameter
   let bodyEnvironment = Environment.with parameterName parameterType environment
   (evaluatedBody, evaluatedBodyType) <- evaluateType bodyEnvironment body
-  case maybeBodyType of
-    Nothing ->
+  case bodyType of
+    UnknownType ->
       return $ createLambdaResult parameterType evaluatedBody evaluatedBodyType
-    Just bodyType
+    _
       | bodyType == evaluatedBodyType ->
         return $ createLambdaResult parameterType evaluatedBody evaluatedBodyType
-    Just bodyType ->
+    _ ->
       Except.throwError $
         TypeMismatchError
           { expectedType = Type.getTypeName bodyType,
@@ -124,7 +124,7 @@ evaluateType environment LambdaExpression {parameter, body, maybeBodyType} = do
             LambdaExpression
               { parameter,
                 body = evaluatedBody,
-                maybeBodyType = Just evaluatedBodyType
+                Expression.bodyType = evaluatedBodyType
               }
       let resultType =
             LambdaType
@@ -133,8 +133,8 @@ evaluateType environment LambdaExpression {parameter, body, maybeBodyType} = do
               }
       (result, resultType)
 
-    evaluateMaybeType Nothing = AnyType -- TODO: get from body context
-    evaluateMaybeType (Just justType) = justType
+    evaluateParameterType UnknownType = AnyType -- TODO: get from body context
+    evaluateParameterType other = other
 evaluateType environment ApplicationExpression {function, argument} = do
   (functionExpression, functionType) <- evaluateType environment function
   evaluateFunctionType functionExpression functionType

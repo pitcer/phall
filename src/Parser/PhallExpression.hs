@@ -23,7 +23,7 @@ data PhallExpression
   | LambdaExpression
       { parameter :: LambdaParameter,
         body :: PhallExpression,
-        maybeBodyType :: Maybe PhallType
+        bodyType :: PhallType
       }
   | ApplicationExpression
       { function :: PhallExpression,
@@ -41,7 +41,7 @@ data PhallExpression
 
 data LambdaParameter = LambdaParameter
   { parameterName :: Name,
-    maybeParameterType :: Maybe PhallType
+    parameterType :: PhallType
   }
   deriving (Show, Eq)
 

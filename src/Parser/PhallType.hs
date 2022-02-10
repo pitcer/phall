@@ -7,7 +7,8 @@ import Data.Text.Lazy as Text
 import Lexer.Symbol as Symbol
 
 data PhallType
-  = AnyType
+  = UnknownType
+  | AnyType
   | ConstantType PhallConstantType
   | NamedType Name
   | ListType PhallType
