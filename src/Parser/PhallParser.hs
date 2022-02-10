@@ -193,7 +193,7 @@ parseInnerType =
 
 simpleTypes :: [Parser PhallType]
 simpleTypes =
-  [parseListType] ++ parseTypeKeywords ++ [parseDataType]
+  [parseListType] ++ parseTypeKeywords ++ [parseNamedType]
   where
     parseListType = Megaparsec.try $ do
       Lexer.tokenizeSymbol LeftSquareBracket
@@ -204,8 +204,8 @@ simpleTypes =
     parseTypeKeywords =
       map (Megaparsec.try . fmap Type.fromTypeKeyword . Lexer.symbol) enumValues
 
-    parseDataType =
-      Megaparsec.try $ ConstantType . DataTypeName <$> Lexer.tokenizeIdentifier
+    parseNamedType =
+      Megaparsec.try $ NamedType <$> Lexer.tokenizeIdentifier
 
 complexTypes :: [Parser PhallType]
 complexTypes =

@@ -9,6 +9,7 @@ import Lexer.Symbol as Symbol
 data PhallType
   = AnyType
   | ConstantType PhallConstantType
+  | NamedType Name
   | ListType PhallType
   | OptionType PhallType
   | LambdaType
@@ -24,7 +25,6 @@ data PhallConstantType
   | FloatType
   | CharType
   | StringType
-  | DataTypeName Name
   deriving (Show, Eq)
 
 data DataTypeField = DataTypeField
@@ -39,6 +39,7 @@ instance Eq PhallType where
   AnyType == _ = True
   _ == AnyType = True
   ConstantType first == ConstantType second = first == second
+  NamedType first == NamedType second = first == second
   ListType first == ListType second = first == second
   OptionType first == OptionType second = first == second
   (==)
@@ -67,7 +68,7 @@ getTypeName (ConstantType IntegerType) = enumName IntegerTypeKeyword
 getTypeName (ConstantType FloatType) = enumName FloatTypeKeyword
 getTypeName (ConstantType CharType) = enumName CharTypeKeyword
 getTypeName (ConstantType StringType) = enumName StringTypeKeyword
-getTypeName (ConstantType (DataTypeName name)) = name
+getTypeName (NamedType name) = name
 getTypeName (ListType listType) =
   enumName LeftSquareBracket <> getTypeName listType <> enumName RightSquareBracket
 getTypeName (OptionType optionType) =

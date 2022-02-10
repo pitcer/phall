@@ -71,7 +71,7 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
       validatedFields <-
         liftExcept $ Monad.zipWithM validateField sortedTypeFields evaluatedInstanceFields
       let result = DataInstanceExpression {instanceName, instanceFields = validatedFields}
-      let resultType = ConstantType $ DataTypeName instanceName
+      let resultType = NamedType instanceName
       return (result, resultType)
     evaluateDataType instanceType =
       Except.throwError $
@@ -177,7 +177,8 @@ evaluateType environment (ListExpression list) = do
   Monad.unless (Prelude.all (listType ==) elementsTypes) . Except.throwError $
     TypeMismatchError
       { expectedType = Type.getTypeName listType,
-        foundType = "",
+        foundType =
+          "[" <> (Text.intercalate "," . Prelude.map Type.getTypeName $ elementsTypes) <> "]",
         context = "evaluate list expression"
       }
   return (ListExpression patchedList, ListType listType)
