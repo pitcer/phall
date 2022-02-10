@@ -100,9 +100,10 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
               context = "evaluate data instance expression"
             }
         return field
-evaluateType environment LambdaExpression {parameter, maybeParameterType, body, maybeBodyType} = do
-  let parameterType = evaluateMaybeType maybeParameterType
-  let bodyEnvironment = Environment.with parameter parameterType environment
+evaluateType environment LambdaExpression {parameter, body, maybeBodyType} = do
+  let parameterType = evaluateMaybeType $ Expression.maybeParameterType parameter
+  let parameterName = Expression.parameterName parameter
+  let bodyEnvironment = Environment.with parameterName parameterType environment
   (evaluatedBody, evaluatedBodyType) <- evaluateType bodyEnvironment body
   case maybeBodyType of
     Nothing ->
@@ -122,7 +123,6 @@ evaluateType environment LambdaExpression {parameter, maybeParameterType, body, 
       let result =
             LambdaExpression
               { parameter,
-                maybeParameterType,
                 body = evaluatedBody,
                 maybeBodyType = Just evaluatedBodyType
               }

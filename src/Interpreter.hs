@@ -24,7 +24,7 @@ runInterpreter = do
 interpret :: ExceptIO PhallError ()
 interpret = do
   expression <-
-    Except.withExceptT ParserError $ parseFromFile Parser.parse "playground/test.phall"
+    Except.withExceptT ParserError $ parseFromFile Parser.parse "playground/config.phall"
   Except.liftIO $ PrettySimple.pPrint expression
   (typedExpression, expressionType) <-
     Except.liftEither

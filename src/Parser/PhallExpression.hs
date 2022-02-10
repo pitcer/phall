@@ -21,8 +21,7 @@ data PhallExpression
         instanceFields :: [DataInstanceField]
       }
   | LambdaExpression
-      { parameter :: Name,
-        maybeParameterType :: Maybe PhallType,
+      { parameter :: LambdaParameter,
         body :: PhallExpression,
         maybeBodyType :: Maybe PhallType
       }
@@ -38,6 +37,12 @@ data PhallExpression
   | ListExpression [PhallExpression]
   | ConstantExpression PhallConstant
   | VariableExpression Name
+  deriving (Show, Eq)
+
+data LambdaParameter = LambdaParameter
+  { parameterName :: Name,
+    maybeParameterType :: Maybe PhallType
+  }
   deriving (Show, Eq)
 
 data DataInstanceField = DataInstanceField

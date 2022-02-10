@@ -59,10 +59,11 @@ evaluateValue environment LambdaExpression {parameter, body} =
   where
     evaluateArgument argument = do
       -- TODO: remove this temporary fix
-      let evaluated = ListT.head $ evaluateValue (Environment.with parameter argument environment) body
+      let parameterName = Expression.parameterName parameter
+      let extendedEnvironment = Environment.with parameterName argument environment
+      let evaluated = ListT.head $ evaluateValue extendedEnvironment body
       maybeResult <- State.evalStateT evaluated Environment.empty
       maybe (Except.throwError $ CustomError "lambda with export") return maybeResult
-
 evaluateValue environment ApplicationExpression {function, argument} = do
   evaluatedFunction <- evaluateValue environment function
   evaluateClosure evaluatedFunction

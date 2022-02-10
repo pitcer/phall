@@ -59,15 +59,7 @@ parseLambda = do
   parameters <- Megaparsec.some parseParameter
   Lexer.tokenizeSymbol RightArrowSymbol
   body <- parseExpression
-  return $ foldr createLambda body parameters
-  where
-    createLambda (parameter, parameterType) previousLambda =
-      LambdaExpression
-        { parameter,
-          maybeParameterType = parameterType,
-          body = previousLambda,
-          maybeBodyType = Nothing
-        }
+  return $ desugarMultiparameterLambda body parameters
 
 parseApplication :: Parser PhallExpression
 parseApplication = do
@@ -154,16 +146,15 @@ parseField = do
 parseLet :: Parser PhallExpression
 parseLet = do
   Lexer.tokenizeKeyword LetKeyword
-  (variableName, variableType) <- parseParameter
-  maybeParameter <- Megaparsec.optional parseParameter
+  variable <- parseParameter
+  maybeParameter <- Megaparsec.optional $ Megaparsec.some parseParameter
   Lexer.tokenizeSymbol EqualitySymbol
   value <- parseExpression
   Lexer.tokenizeKeyword InKeyword
   body <- parseExpression
   let function =
         LambdaExpression
-          { parameter = variableName,
-            maybeParameterType = variableType,
+          { parameter = variable,
             body,
             maybeBodyType = Nothing
           }
@@ -174,19 +165,28 @@ parseLet = do
       }
   where
     desugarFunction value Nothing = value
-    desugarFunction body (Just (parameter, parameterType)) =
+    desugarFunction body (Just parameters) =
+      desugarMultiparameterLambda body parameters
+
+desugarMultiparameterLambda :: PhallExpression -> [LambdaParameter] -> PhallExpression
+desugarMultiparameterLambda = foldr createLambda
+  where
+    createLambda parameter previousLambda =
       LambdaExpression
         { parameter,
-          maybeParameterType = parameterType,
-          body,
+          body = previousLambda,
           maybeBodyType = Nothing
         }
 
-parseParameter :: Parser (Name, Maybe PhallType)
+parseParameter :: Parser LambdaParameter
 parseParameter = do
   name <- Lexer.tokenizeIdentifier
   typeKeyword <- parseType
-  return (name, fmap Type.fromTypeKeyword typeKeyword)
+  return
+    LambdaParameter
+      { parameterName = name,
+        maybeParameterType = fmap Type.fromTypeKeyword typeKeyword
+      }
 
 parseType :: Parser (Maybe TypeKeyword)
 parseType = do
