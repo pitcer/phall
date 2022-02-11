@@ -25,8 +25,8 @@ runInterpreter = do
 
 interpret :: ExceptIO PhallError ()
 interpret = do
-  arguments <- Except.lift System.getArgs
-  let sourceFile = List.head arguments
+  inputArguments <- Except.lift System.getArgs
+  let sourceFile = List.head inputArguments
   expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse sourceFile
   Except.liftIO $ PrettySimple.pPrint expression
   (typedExpression, expressionType) <-
