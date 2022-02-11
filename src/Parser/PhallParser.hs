@@ -54,7 +54,7 @@ simpleExpressions =
 
 parseLambda :: Parser PhallExpression
 parseLambda = do
-  parameters <- parseMaybeCommaList parseParameter parseParameter
+  parameters <- parseManyWithOptionalComma parseParameter parseParameter
   Lexer.tokenizeSymbol RightArrowSymbol
   body <- parseExpression
   return $ desugarMultiparameterLambda body parameters
@@ -94,7 +94,7 @@ parseImportedOrExportedItems =
   Megaparsec.choice
     [ Full <$ Lexer.tokenizeSymbol AsteriskSymbol,
       do
-        items <- parseMaybeCommaList Lexer.tokenizeIdentifier Lexer.tokenizeIdentifier
+        items <- parseManyWithOptionalComma Lexer.tokenizeIdentifier Lexer.tokenizeIdentifier
         let itemsSet = Set.fromList items
         Monad.guard $ length items == length itemsSet
         return $ NotFull itemsSet
@@ -105,7 +105,7 @@ parseDataDeclaration = do
   Lexer.tokenizeKeyword DataKeyword
   declarationName <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol EqualitySymbol
-  declarationFields <- parseMaybeCommaList parseField parseField
+  declarationFields <- parseManyWithOptionalComma parseField parseField
   Lexer.tokenizeKeyword InKeyword
   declarationBody <- parseExpression
   return DataDeclarationExpression {declarationName, declarationFields, declarationBody}
@@ -115,7 +115,7 @@ parseDataInstance = do
   instanceName <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol LeftCurlyBracket
   instanceFields <-
-    parseMaybeCommaList
+    parseManyWithOptionalComma
       (parseFieldInstance parseInnerExpression)
       (parseFieldInstance parseExpression)
   Lexer.tokenizeSymbol RightCurlyBracket
@@ -139,7 +139,7 @@ parseLet :: Parser PhallExpression
 parseLet = do
   Lexer.tokenizeKeyword LetKeyword
   variable <- parseParameter
-  maybeParameter <- Megaparsec.optional $ parseMaybeCommaList parseParameter parseParameter
+  maybeParameter <- Megaparsec.optional $ parseManyWithOptionalComma parseParameter parseParameter
   Lexer.tokenizeSymbol EqualitySymbol
   value <- parseExpression
   Lexer.tokenizeKeyword InKeyword
@@ -233,12 +233,12 @@ parseConditional = do
 parseList :: Parser PhallExpression
 parseList = do
   Lexer.tokenizeSymbol LeftSquareBracket
-  list <- parseMaybeCommaList parseInnerExpression parseExpression
+  list <- parseManyWithOptionalComma parseInnerExpression parseExpression
   Lexer.tokenizeSymbol RightSquareBracket
   return $ ListExpression list
 
-parseMaybeCommaList :: Parser a -> Parser a -> Parser [a]
-parseMaybeCommaList withoutComaParser withComaParser =
+parseManyWithOptionalComma :: Parser a -> Parser a -> Parser [a]
+parseManyWithOptionalComma withoutComaParser withComaParser =
   Megaparsec.many $
     Megaparsec.choice . map Megaparsec.try $
       [ withComaParser <* Lexer.tokenizeSymbol CommaSymbol,
