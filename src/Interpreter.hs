@@ -2,12 +2,14 @@ module Interpreter (runInterpreter) where
 
 import Common
 import Control.Monad.Except as Except
+import qualified Data.List as List
 import Data.Text.Lazy.IO as TextIO
 import Error
 import Evaluator.PhallEvaluator as Evaluator
 import Parser.PhallExpression
 import Parser.PhallParser as Parser
 import Parser.PhallType as Type
+import System.Environment as System
 import Text.Megaparsec as Megaparsec
 import Text.Pretty.Simple as PrettySimple
 import TypeEvaluator.TypeEvaluator as TypeEvaluator
@@ -23,8 +25,9 @@ runInterpreter = do
 
 interpret :: ExceptIO PhallError ()
 interpret = do
-  expression <-
-    Except.withExceptT ParserError $ parseFromFile Parser.parse "playground/test2.phall"
+  arguments <- Except.lift System.getArgs
+  let sourceFile = List.head arguments
+  expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse sourceFile
   Except.liftIO $ PrettySimple.pPrint expression
   (typedExpression, expressionType) <-
     Except.liftEither
