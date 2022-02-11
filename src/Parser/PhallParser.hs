@@ -33,14 +33,16 @@ parseInnerExpression =
 
 complexExpressions :: [Parser PhallExpression]
 complexExpressions =
-  [ Megaparsec.try parseImport,
-    Megaparsec.try parseExport,
-    Megaparsec.try parseDataDeclaration,
-    Megaparsec.try parseLet,
-    Megaparsec.try parseConditional,
-    Megaparsec.try parseLambda,
-    Megaparsec.try parseApplication
-  ]
+  map
+    Megaparsec.try
+    [ parseImport,
+      parseExport,
+      parseDataDeclaration,
+      parseLet,
+      parseConditional,
+      parseLambda,
+      parseApplication
+    ]
 
 simpleExpressions :: [Parser PhallExpression]
 simpleExpressions =
@@ -52,7 +54,7 @@ simpleExpressions =
 
 parseLambda :: Parser PhallExpression
 parseLambda = do
-  parameters <- Megaparsec.some parseParameter
+  parameters <- parseMaybeCommaList parseParameter parseParameter
   Lexer.tokenizeSymbol RightArrowSymbol
   body <- parseExpression
   return $ desugarMultiparameterLambda body parameters
@@ -92,7 +94,7 @@ parseImportedOrExportedItems =
   Megaparsec.choice
     [ Full <$ Lexer.tokenizeSymbol AsteriskSymbol,
       do
-        items <- Megaparsec.some $ Megaparsec.try Lexer.tokenizeIdentifier
+        items <- parseMaybeCommaList Lexer.tokenizeIdentifier Lexer.tokenizeIdentifier
         let itemsSet = Set.fromList items
         Monad.guard $ length items == length itemsSet
         return $ NotFull itemsSet
@@ -101,31 +103,29 @@ parseImportedOrExportedItems =
 parseDataDeclaration :: Parser PhallExpression
 parseDataDeclaration = do
   Lexer.tokenizeKeyword DataKeyword
-  name <- Lexer.tokenizeIdentifier
+  declarationName <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol EqualitySymbol
-  fields <- Megaparsec.sepBy parseField $ Lexer.tokenizeSymbol CommaSymbol
+  declarationFields <- parseMaybeCommaList parseField parseField
   Lexer.tokenizeKeyword InKeyword
-  body <- parseExpression
-  return
-    DataDeclarationExpression
-      { declarationName = name,
-        declarationFields = fields,
-        declarationBody = body
-      }
+  declarationBody <- parseExpression
+  return DataDeclarationExpression {declarationName, declarationFields, declarationBody}
 
 parseDataInstance :: Parser PhallExpression
 parseDataInstance = do
   instanceName <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol LeftCurlyBracket
-  instanceFields <- Megaparsec.sepBy parseFieldInstance $ Lexer.tokenizeSymbol CommaSymbol
+  instanceFields <-
+    parseMaybeCommaList
+      (parseFieldInstance parseInnerExpression)
+      (parseFieldInstance parseExpression)
   Lexer.tokenizeSymbol RightCurlyBracket
   return DataInstanceExpression {instanceName, instanceFields}
 
-parseFieldInstance :: Parser DataInstanceField
-parseFieldInstance = do
+parseFieldInstance :: Parser PhallExpression -> Parser DataInstanceField
+parseFieldInstance valueParser = do
   fieldName <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol EqualitySymbol
-  fieldValue <- parseExpression
+  fieldValue <- valueParser
   return DataInstanceField {Expression.fieldName, Expression.fieldValue}
 
 parseField :: Parser DataTypeField
@@ -139,7 +139,7 @@ parseLet :: Parser PhallExpression
 parseLet = do
   Lexer.tokenizeKeyword LetKeyword
   variable <- parseParameter
-  maybeParameter <- Megaparsec.optional $ Megaparsec.some parseParameter
+  maybeParameter <- Megaparsec.optional $ parseMaybeCommaList parseParameter parseParameter
   Lexer.tokenizeSymbol EqualitySymbol
   value <- parseExpression
   Lexer.tokenizeKeyword InKeyword
@@ -233,9 +233,17 @@ parseConditional = do
 parseList :: Parser PhallExpression
 parseList = do
   Lexer.tokenizeSymbol LeftSquareBracket
-  list <- Megaparsec.sepBy parseExpression $ Lexer.tokenizeSymbol CommaSymbol
+  list <- parseMaybeCommaList parseInnerExpression parseExpression
   Lexer.tokenizeSymbol RightSquareBracket
   return $ ListExpression list
+
+parseMaybeCommaList :: Parser a -> Parser a -> Parser [a]
+parseMaybeCommaList withoutComaParser withComaParser =
+  Megaparsec.many $
+    Megaparsec.choice . map Megaparsec.try $
+      [ withComaParser <* Lexer.tokenizeSymbol CommaSymbol,
+        withoutComaParser
+      ]
 
 parseConstant :: Parser PhallConstant
 parseConstant =
