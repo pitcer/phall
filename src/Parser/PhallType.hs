@@ -17,6 +17,7 @@ data PhallType
       { parameterType :: PhallType,
         bodyType :: PhallType
       }
+  | TupleType [PhallType]
   | DataType [DataTypeField]
   deriving (Show)
 
@@ -42,6 +43,7 @@ instance Eq PhallType where
   ConstantType first == ConstantType second = first == second
   NamedType first == NamedType second = first == second
   ListType first == ListType second = first == second
+  TupleType first == TupleType second = first == second
   OptionType first == OptionType second = first == second
   (==)
     LambdaType
@@ -63,6 +65,7 @@ fromTypeKeyword CharTypeKeyword = ConstantType CharType
 fromTypeKeyword StringTypeKeyword = ConstantType StringType
 
 getTypeName :: PhallType -> Text
+getTypeName UnknownType = error "Tried to get unknown type name"
 getTypeName AnyType = enumName AnyTypeKeyword
 getTypeName (ConstantType BooleanType) = enumName BooleanTypeKeyword
 getTypeName (ConstantType IntegerType) = enumName IntegerTypeKeyword
@@ -72,6 +75,10 @@ getTypeName (ConstantType StringType) = enumName StringTypeKeyword
 getTypeName (NamedType name) = name
 getTypeName (ListType listType) =
   enumName LeftSquareBracket <> getTypeName listType <> enumName RightSquareBracket
+getTypeName (TupleType tupleType) =
+  enumName LeftCurlyBracket
+    <> Text.intercalate ", " (Prelude.map getTypeName tupleType)
+    <> enumName RightCurlyBracket
 getTypeName (OptionType optionType) =
   getTypeName optionType <> enumName QuestionMark
 getTypeName LambdaType {parameterType, bodyType} =

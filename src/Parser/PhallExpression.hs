@@ -34,6 +34,7 @@ data PhallExpression
         positive :: PhallExpression,
         negative :: PhallExpression
       }
+  | TupleExpression [PhallExpression]
   | ListExpression [PhallExpression]
   | ConstantExpression PhallConstant
   | VariableExpression Name

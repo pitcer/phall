@@ -170,6 +170,10 @@ evaluateType environment ApplicationExpression {function, argument} = do
             foundType = Type.getTypeName functionType,
             context = "evaluate application expression"
           }
+evaluateType environment (TupleExpression tuple) = do
+  evaluatedTuple <- mapM (evaluateType environment) tuple
+  let (patchedTuple, elementsTypes) = unzip evaluatedTuple
+  return (TupleExpression patchedTuple, TupleType elementsTypes)
 evaluateType environment (ListExpression list) = do
   evaluatedList <- mapM (evaluateType environment) list
   let (patchedList, elementsTypes) = unzip evaluatedList

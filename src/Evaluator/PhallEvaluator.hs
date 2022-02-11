@@ -12,10 +12,11 @@ import Data.Map as Map
 import Data.Maybe as Maybe
 import Environment
 import Error (EvaluatorError (..))
-import Evaluator.PhallValue
+import Evaluator.PhallValue as Value
 import Evaluator.ValueEnvironment as ValueEnvironment
 import ListT
 import Parser.PhallExpression as Expression
+import Parser.PhallType as Type
 
 type ValueEvaluatorResult = Except EvaluatorError
 
@@ -51,7 +52,7 @@ evaluateValue environment DataInstanceExpression {instanceFields} = do
   fields <- Monad.foldM evaluateField Map.empty instanceFields
   return $ DataValue fields
   where
-    evaluateField fields DataInstanceField {fieldName, fieldValue} = do
+    evaluateField fields DataInstanceField {Expression.fieldName, fieldValue} = do
       value <- evaluateValue environment fieldValue
       return $ Map.insert fieldName value fields
 evaluateValue environment LambdaExpression {parameter, body} =
@@ -71,8 +72,15 @@ evaluateValue environment ApplicationExpression {function, argument} = do
     evaluateClosure (ClosureValue (ClosureInner closure)) = do
       evaluatedArgument <- evaluateValue environment argument
       liftExcept $ closure evaluatedArgument
-    evaluateClosure _ =
-      Except.throwError $ InvalidTypeError {correctType = "Closure", actualType = "?"}
+    evaluateClosure actualType =
+      Except.throwError $
+        InvalidTypeError
+          { correctType = "Closure",
+            actualType = Type.getTypeName $ Value.getValueType actualType
+          }
+evaluateValue environment (TupleExpression tuple) = do
+  evaluatedTuple <- mapM (evaluateValue environment) tuple
+  return $ TupleValue evaluatedTuple
 evaluateValue environment (ListExpression list) = do
   evaluatedList <- mapM (evaluateValue environment) list
   return $ ListValue evaluatedList
@@ -84,8 +92,12 @@ evaluateValue environment ConditionalExpression {condition, positive, negative} 
       if value
         then evaluateValue environment positive
         else evaluateValue environment negative
-    evaluateCondition _ = do
-      Except.throwError $ InvalidTypeError {correctType = "Boolean", actualType = "?"}
+    evaluateCondition actualType = do
+      Except.throwError $
+        InvalidTypeError
+          { correctType = "Boolean",
+            actualType = Type.getTypeName $ Value.getValueType actualType
+          }
 evaluateValue _ (ConstantExpression constant) =
   return $ evaluateConstant constant
 evaluateValue environment (VariableExpression name) =
