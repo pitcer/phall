@@ -20,6 +20,10 @@ data PhallExpression
       { instanceName :: Name,
         instanceFields :: [DataInstanceField]
       }
+  | InternalCallExpression
+      { calleeName :: Name,
+        arguments :: [PhallExpression]
+      }
   | LambdaExpression
       { parameter :: LambdaParameter,
         body :: PhallExpression,

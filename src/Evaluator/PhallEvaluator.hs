@@ -14,6 +14,7 @@ import Environment
 import Error (EvaluatorError (..))
 import Evaluator.PhallValue as Value
 import Evaluator.ValueEnvironment as ValueEnvironment
+import Internal.Internal as Internal
 import ListT
 import Parser.PhallExpression as Expression
 import Parser.PhallType as Type
@@ -55,6 +56,9 @@ evaluateValue environment DataInstanceExpression {instanceFields} = do
     evaluateField fields DataInstanceField {Expression.fieldName, fieldValue} = do
       value <- evaluateValue environment fieldValue
       return $ Map.insert fieldName value fields
+evaluateValue environment InternalCallExpression {calleeName, arguments} = do
+  evaluatedArguments <- Monad.mapM (evaluateValue environment) arguments
+  liftExcept $ Internal.internalCall calleeName evaluatedArguments
 evaluateValue environment LambdaExpression {parameter, body} =
   return $ ClosureValue . ClosureInner $ evaluateArgument
   where
@@ -79,10 +83,10 @@ evaluateValue environment ApplicationExpression {function, argument} = do
             actualType = Type.getTypeName $ Value.getValueType actualType
           }
 evaluateValue environment (TupleExpression tuple) = do
-  evaluatedTuple <- mapM (evaluateValue environment) tuple
+  evaluatedTuple <- Monad.mapM (evaluateValue environment) tuple
   return $ TupleValue evaluatedTuple
 evaluateValue environment (ListExpression list) = do
-  evaluatedList <- mapM (evaluateValue environment) list
+  evaluatedList <- Monad.mapM (evaluateValue environment) list
   return $ ListValue evaluatedList
 evaluateValue environment ConditionalExpression {condition, positive, negative} = do
   conditionValue <- evaluateValue environment condition

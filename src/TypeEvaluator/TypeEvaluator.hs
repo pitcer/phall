@@ -11,6 +11,7 @@ import Data.Maybe as Maybe
 import Data.Text.Lazy as Text
 import Environment
 import Error (TypeError (..))
+import Internal.InternalType as Internal
 import ListT
 import Parser.PhallExpression as Expression
 import Parser.PhallType as Type
@@ -100,6 +101,16 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
               context = "evaluate data instance expression"
             }
         return field
+evaluateType environment InternalCallExpression {calleeName, arguments} = do
+  (argumentsExpressions, argumentsTypes) <- Monad.mapAndUnzipM (evaluateType environment) arguments
+  (callArgumentsTypes, callReturnType) <- liftExcept $ Internal.internalCallType calleeName
+  Monad.unless (argumentsTypes == callArgumentsTypes) . Except.throwError $
+    TypeMismatchError
+      { expectedType = "?",
+        foundType = "?",
+        context = "evaluate internal call expression"
+      }
+  return (InternalCallExpression {calleeName, arguments = argumentsExpressions}, callReturnType)
 evaluateType environment LambdaExpression {parameter, body, Expression.bodyType} = do
   let parameterType = evaluateParameterType $ Expression.parameterType parameter
   let parameterName = Expression.parameterName parameter
@@ -171,12 +182,10 @@ evaluateType environment ApplicationExpression {function, argument} = do
             context = "evaluate application expression"
           }
 evaluateType environment (TupleExpression tuple) = do
-  evaluatedTuple <- mapM (evaluateType environment) tuple
-  let (patchedTuple, elementsTypes) = unzip evaluatedTuple
+  (patchedTuple, elementsTypes) <- Monad.mapAndUnzipM (evaluateType environment) tuple
   return (TupleExpression patchedTuple, TupleType elementsTypes)
 evaluateType environment (ListExpression list) = do
-  evaluatedList <- mapM (evaluateType environment) list
-  let (patchedList, elementsTypes) = unzip evaluatedList
+  (patchedList, elementsTypes) <- Monad.mapAndUnzipM (evaluateType environment) list
   let listType = getListType elementsTypes
   Monad.unless (Prelude.all (listType ==) elementsTypes) . Except.throwError $
     TypeMismatchError

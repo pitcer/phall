@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Evaluator.BuiltinTH where
+module Internal.InternalTH where
 
 import Control.Monad.Except as Except
 import Error (EvaluatorError (..))

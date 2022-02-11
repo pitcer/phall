@@ -65,7 +65,8 @@ data Symbol
   | RightCurlyBracket
   | RightArrowSymbol
   | AsteriskSymbol
-  | QuestionMark
+  | QuestionMarkSymbol
+  | AtSymbol
   | EqualitySymbol
   | CommaSymbol
   | ColonSymbol
@@ -84,7 +85,8 @@ instance EnumValues Symbol where
   enumName RightCurlyBracket = "}"
   enumName RightArrowSymbol = "->"
   enumName AsteriskSymbol = "*"
-  enumName QuestionMark = "?"
+  enumName QuestionMarkSymbol = "?"
+  enumName AtSymbol = "@"
   enumName EqualitySymbol = "="
   enumName CommaSymbol = ","
   enumName ColonSymbol = ":"

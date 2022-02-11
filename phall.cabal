@@ -27,12 +27,13 @@ library
       Common
       Environment
       Error
-      Evaluator.Builtin
-      Evaluator.BuiltinTH
       Evaluator.PhallEvaluator
       Evaluator.PhallValue
       Evaluator.ValueEnvironment
       FullSet
+      Internal.Internal
+      Internal.InternalTH
+      Internal.InternalType
       Interpreter
       Lexer.PhallLexer
       Lexer.Symbol

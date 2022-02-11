@@ -80,7 +80,7 @@ getTypeName (TupleType tupleType) =
     <> Text.intercalate ", " (Prelude.map getTypeName tupleType)
     <> enumName RightCurlyBracket
 getTypeName (OptionType optionType) =
-  getTypeName optionType <> enumName QuestionMark
+  getTypeName optionType <> enumName QuestionMarkSymbol
 getTypeName LambdaType {parameterType, bodyType} =
   "(" <> getTypeName parameterType <> " " <> enumName RightArrowSymbol <> " "
     <> getTypeName bodyType

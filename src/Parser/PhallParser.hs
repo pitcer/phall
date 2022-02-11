@@ -40,6 +40,7 @@ complexExpressions =
       parseDataDeclaration,
       parseLet,
       parseConditional,
+      parseInternalCall,
       parseLambda,
       parseApplication
     ]
@@ -68,6 +69,12 @@ parseApplication = do
   where
     createApplication previousApplication argument =
       ApplicationExpression {function = previousApplication, argument}
+
+parseInternalCall :: Parser PhallExpression
+parseInternalCall = do
+  calleeName <- Lexer.tokenizeSymbol AtSymbol *> Lexer.tokenizeIdentifier
+  arguments <- Megaparsec.many parseInnerExpression
+  return InternalCallExpression {calleeName, arguments}
 
 parseImport :: Parser PhallExpression
 parseImport = do
