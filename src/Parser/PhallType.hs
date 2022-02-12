@@ -3,7 +3,9 @@
 
 module Parser.PhallType where
 
+import Common
 import Data.Text.Lazy as Text
+import Environment
 import Lexer.Symbol as Symbol
 
 data PhallType
@@ -19,6 +21,7 @@ data PhallType
       }
   | TupleType [PhallType]
   | DataType [DataTypeField]
+  | ExportBundleType (Environment PhallType)
   deriving (Show)
 
 data PhallConstantType
@@ -34,8 +37,6 @@ data DataTypeField = DataTypeField
     fieldType :: PhallType
   }
   deriving (Show, Eq)
-
-type Name = Text
 
 instance Eq PhallType where
   AnyType == _ = True
@@ -93,3 +94,5 @@ getTypeName (DataType fields) =
       Prelude.map
         (\DataTypeField {fieldName, fieldType} -> fieldName <> ": " <> getTypeName fieldType)
         fields
+getTypeName (ExportBundleType environment) =
+  "(export " <> Text.intercalate ", " (Environment.names environment) <> ")"

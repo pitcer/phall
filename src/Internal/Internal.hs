@@ -3,6 +3,7 @@
 
 module Internal.Internal where
 
+import Common
 import Control.Monad.Except as Except
 import Error
 import Evaluator.PhallValue as Value

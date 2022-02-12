@@ -2,11 +2,11 @@
 
 module Evaluator.ValueEnvironment where
 
+import Common
 import Control.Monad.Except as Except
 import Environment
 import Error (EvaluatorError (..))
 import Evaluator.PhallValue
-import Parser.PhallType
 
 type ValueEnvironment = Environment PhallValue
 

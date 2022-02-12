@@ -2,6 +2,7 @@
 
 module Internal.InternalType where
 
+import Common
 import Control.Monad.Except as Except
 import Error
 import Parser.PhallType

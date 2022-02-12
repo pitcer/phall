@@ -5,6 +5,7 @@ module Evaluator.PhallValue where
 import Control.Monad.Except as Except
 import Data.Map as Map
 import Data.Text.Internal.Lazy (Text)
+import Environment
 import Error (EvaluatorError)
 import Parser.PhallType as Type
 
@@ -18,11 +19,11 @@ data PhallValue
   | ListValue [PhallValue]
   | ClosureValue ClosureInner
   | DataValue (Map Text PhallValue)
+  | ExportBundleValue (Environment PhallValue)
   deriving (Show, Eq)
 
 newtype ClosureInner
-  = -- TODO: try to explicite save environment
-    ClosureInner (PhallValue -> Except EvaluatorError PhallValue)
+  = ClosureInner (PhallValue -> Except EvaluatorError PhallValue)
 
 instance Show ClosureInner where
   show _ = "Closure"
@@ -47,3 +48,4 @@ getValueType (DataValue dataValue) =
   where
     toFieldType (fieldName, fieldType) =
       DataTypeField {fieldName, fieldType = getValueType fieldType}
+getValueType (ExportBundleValue _) = UnknownType

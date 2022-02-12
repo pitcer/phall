@@ -2,17 +2,20 @@
 
 module Environment where
 
+import Common
 import Data.Map as Map
 import FullSet
-import Parser.PhallType
 
 newtype Environment a = Environment
   { entries :: Map Name a
   }
-  deriving (Show)
+  deriving (Show, Eq)
 
 empty :: Environment a
 empty = Environment {entries = Map.empty}
+
+names :: Environment a -> [Name]
+names Environment {entries} = Map.keys entries
 
 lookup :: Name -> Environment a -> Maybe a
 lookup name Environment {entries} =

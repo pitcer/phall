@@ -6,47 +6,34 @@ module Evaluator.PhallEvaluator where
 import Control.Monad as Monad
 import Control.Monad.Except (Except)
 import qualified Control.Monad.Except as Except
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.State as State
 import Data.Map as Map
-import Data.Maybe as Maybe
 import Environment
-import Error (EvaluatorError (..))
+import Error
 import Evaluator.PhallValue as Value
 import Evaluator.ValueEnvironment as ValueEnvironment
 import Internal.Internal as Internal
-import ListT
 import Parser.PhallExpression as Expression
 import Parser.PhallType as Type
 
-type ValueEvaluatorResult = Except EvaluatorError
+type EvaluatorResult a = Except EvaluatorError a
 
-evaluate :: PhallExpression -> ValueEvaluatorResult PhallValue
-evaluate expression = do
-  let evaluated = ListT.head $ evaluateValue Environment.empty expression
-  maybeResult <- State.evalStateT evaluated Environment.empty
-  maybe (Except.throwError $ CustomError "evaluate with export") return maybeResult
+evaluate :: PhallExpression -> EvaluatorResult PhallValue
+evaluate = evaluateValue Environment.empty
 
-type ValueEvaluatorMonad = ListT (StateT ValueEvaluatorState ValueEvaluatorResult)
-
-type ValueEvaluatorState = ValueEnvironment
-
-liftExcept :: ValueEvaluatorResult a -> ValueEvaluatorMonad a
-liftExcept = lift . lift
-
-evaluateValue :: ValueEnvironment -> PhallExpression -> ValueEvaluatorMonad PhallValue
+evaluateValue :: ValueEnvironment -> PhallExpression -> EvaluatorResult PhallValue
 evaluateValue environment ImportExpression {importSource, importedItems, importBody} = do
-  let evaluated = ListT.head $ evaluateValue Environment.empty importSource
-  (result, exportedEnvironment) <- liftExcept $ State.runStateT evaluated Environment.empty
-  Monad.unless (Maybe.isNothing result) . Except.throwError $
-    MissingExportInImportedExpressionEvaluatorError
-  let restrictedEnvironment = Environment.restrict exportedEnvironment importedItems
-  let extendedEnvironment = Environment.union environment restrictedEnvironment
-  evaluateValue extendedEnvironment importBody
+  evaluated <- evaluateValue Environment.empty importSource
+  evaluateExportBundle evaluated
+  where
+    evaluateExportBundle (ExportBundleValue exportedEnvironment) = do
+      let restrictedEnvironment = Environment.restrict exportedEnvironment importedItems
+      let extendedEnvironment = Environment.union environment restrictedEnvironment
+      evaluateValue extendedEnvironment importBody
+    evaluateExportBundle _ =
+      Except.throwError MissingExportInImportedExpressionEvaluatorError
 evaluateValue environment (ExportExpression exportedItems) = do
   let restrictedEnvironment = Environment.restrict environment exportedItems
-  lift $ State.modify $ Environment.union restrictedEnvironment
-  mzero
+  return $ ExportBundleValue restrictedEnvironment
 evaluateValue environment DataDeclarationExpression {declarationBody} =
   evaluateValue environment declarationBody
 evaluateValue environment DataInstanceExpression {instanceFields} = do
@@ -58,24 +45,21 @@ evaluateValue environment DataInstanceExpression {instanceFields} = do
       return $ Map.insert fieldName value fields
 evaluateValue environment InternalCallExpression {calleeName, arguments} = do
   evaluatedArguments <- Monad.mapM (evaluateValue environment) arguments
-  liftExcept $ Internal.internalCall calleeName evaluatedArguments
-evaluateValue environment LambdaExpression {parameter, body} =
+  Internal.internalCall calleeName evaluatedArguments
+evaluateValue environment LambdaExpression {parameter, body} = do
   return $ ClosureValue . ClosureInner $ evaluateArgument
   where
     evaluateArgument argument = do
-      -- TODO: remove this temporary fix
       let parameterName = Expression.parameterName parameter
       let extendedEnvironment = Environment.with parameterName argument environment
-      let evaluated = ListT.head $ evaluateValue extendedEnvironment body
-      maybeResult <- State.evalStateT evaluated Environment.empty
-      maybe (Except.throwError $ CustomError "lambda with export") return maybeResult
+      evaluateValue extendedEnvironment body
 evaluateValue environment ApplicationExpression {function, argument} = do
   evaluatedFunction <- evaluateValue environment function
   evaluateClosure evaluatedFunction
   where
     evaluateClosure (ClosureValue (ClosureInner closure)) = do
       evaluatedArgument <- evaluateValue environment argument
-      liftExcept $ closure evaluatedArgument
+      closure evaluatedArgument
     evaluateClosure actualType =
       Except.throwError $
         InvalidTypeError
@@ -105,7 +89,7 @@ evaluateValue environment ConditionalExpression {condition, positive, negative} 
 evaluateValue _ (ConstantExpression constant) =
   return $ evaluateConstant constant
 evaluateValue environment (VariableExpression name) =
-  liftExcept $ ValueEnvironment.getVariable environment name
+  ValueEnvironment.getVariable environment name
 
 evaluateConstant :: PhallConstant -> PhallValue
 evaluateConstant (BooleanConstant boolean) = BooleanValue boolean

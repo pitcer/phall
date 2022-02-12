@@ -1,5 +1,6 @@
 module Parser.PhallExpression where
 
+import Common
 import Data.Text.Lazy as Text
 import FullSet
 import Parser.PhallType

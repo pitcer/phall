@@ -5,49 +5,35 @@ module TypeEvaluator.TypeEvaluator where
 
 import Control.Monad as Monad
 import Control.Monad.Except as Except
-import Control.Monad.State as State
 import qualified Data.List as List
-import Data.Maybe as Maybe
 import Data.Text.Lazy as Text
 import Environment
 import Error (TypeError (..))
 import Internal.InternalType as Internal
-import ListT
 import Parser.PhallExpression as Expression
 import Parser.PhallType as Type
 import TypeEvaluator.TypeEnvironment as TypeEnvironment
 
-type TypeEvaluatorResult = Except TypeError
+type EvaluatorResult = Except TypeError
 
-evaluate :: PhallExpression -> TypeEvaluatorResult (PhallExpression, PhallType)
-evaluate expression = do
-  let evaluated = ListT.head $ evaluateType Environment.empty expression
-  maybeResult <- State.evalStateT evaluated Environment.empty
-  maybe (Except.throwError ExportInOuterExpressionTypeError) return maybeResult
+evaluate :: PhallExpression -> EvaluatorResult (PhallExpression, PhallType)
+evaluate = evaluateType Environment.empty
 
-type TypeEvaluatorMonad = ListT (StateT TypeEvaluatorState TypeEvaluatorResult)
-
-type TypeEvaluatorState = TypeEnvironment
-
-liftExcept :: Except TypeError a -> TypeEvaluatorMonad a
-liftExcept = lift . lift
-
-evaluateType ::
-  TypeEnvironment ->
-  PhallExpression ->
-  TypeEvaluatorMonad (PhallExpression, PhallType)
+evaluateType :: TypeEnvironment -> PhallExpression -> EvaluatorResult (PhallExpression, PhallType)
 evaluateType environment ImportExpression {importSource, importedItems, importBody} = do
-  let evaluated = ListT.head $ evaluateType Environment.empty importSource
-  (result, exportedEnvironment) <- liftExcept $ State.runStateT evaluated Environment.empty
-  Monad.unless (Maybe.isNothing result) . Except.throwError $
-    MissingExportInImportedExpressionTypeError
-  let restrictedEnvironment = Environment.restrict exportedEnvironment importedItems
-  let extendedEnvironment = Environment.union environment restrictedEnvironment
-  evaluateType extendedEnvironment importBody
-evaluateType environment (ExportExpression exportedItems) = do
+  (sourceExpression, sourceType) <- evaluateType Environment.empty importSource
+  evaluateExportBundle sourceExpression sourceType
+  where
+    evaluateExportBundle sourceExpression (ExportBundleType exportedEnvironment) = do
+      let restrictedEnvironment = Environment.restrict exportedEnvironment importedItems
+      let extendedEnvironment = Environment.union environment restrictedEnvironment
+      (bodyExpression, bodyType) <- evaluateType extendedEnvironment importBody
+      return (ImportExpression sourceExpression importedItems bodyExpression, bodyType)
+    evaluateExportBundle _ _ =
+      Except.throwError MissingExportInImportedExpressionTypeError
+evaluateType environment expression@(ExportExpression exportedItems) = do
   let restrictedEnvironment = Environment.restrict environment exportedItems
-  State.modify $ Environment.union restrictedEnvironment
-  mzero
+  return (expression, ExportBundleType restrictedEnvironment)
 evaluateType
   environment
   DataDeclarationExpression {declarationName, declarationFields, declarationBody} = do
@@ -62,7 +48,7 @@ evaluateType
             }
     return (expression, bodyType)
 evaluateType environment DataInstanceExpression {instanceName, instanceFields} = do
-  instanceType <- liftExcept $ TypeEnvironment.getType environment instanceName
+  instanceType <- TypeEnvironment.getType environment instanceName
   evaluateDataType instanceType
   where
     evaluateDataType (DataType typeFields) = do
@@ -70,7 +56,7 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
       let sortedInstanceFields = List.sortOn Expression.fieldName instanceFields
       evaluatedInstanceFields <- Monad.mapM evaluateInstanceField sortedInstanceFields
       validatedFields <-
-        liftExcept $ Monad.zipWithM validateField sortedTypeFields evaluatedInstanceFields
+        Monad.zipWithM validateField sortedTypeFields evaluatedInstanceFields
       let result = DataInstanceExpression {instanceName, instanceFields = validatedFields}
       let resultType = NamedType instanceName
       return (result, resultType)
@@ -103,7 +89,7 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
         return field
 evaluateType environment InternalCallExpression {calleeName, arguments} = do
   (argumentsExpressions, argumentsTypes) <- Monad.mapAndUnzipM (evaluateType environment) arguments
-  (callArgumentsTypes, callReturnType) <- liftExcept $ Internal.internalCallType calleeName
+  (callArgumentsTypes, callReturnType) <- Internal.internalCallType calleeName
   Monad.unless (argumentsTypes == callArgumentsTypes) . Except.throwError $
     TypeMismatchError
       { expectedType = "?",
@@ -228,7 +214,7 @@ evaluateType environment ConditionalExpression {condition, positive, negative} =
 evaluateType _ expression@(ConstantExpression constant) =
   return (expression, evaluateConstantType constant)
 evaluateType environment expression@(VariableExpression name) = do
-  variableType <- liftExcept $ TypeEnvironment.getType environment name
+  variableType <- TypeEnvironment.getType environment name
   return (expression, variableType)
 
 evaluateConstantType :: PhallConstant -> PhallType

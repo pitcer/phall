@@ -11,3 +11,5 @@ type Parser a = ParserT IO a
 type ParsecError = Void
 
 type ParsecStream = Text
+
+type Name = Text

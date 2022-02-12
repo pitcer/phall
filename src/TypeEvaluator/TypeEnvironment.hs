@@ -1,5 +1,6 @@
 module TypeEvaluator.TypeEnvironment where
 
+import Common
 import Control.Monad.Except as Except
 import Environment
 import Error (TypeError (..))
