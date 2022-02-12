@@ -6,9 +6,12 @@ module Parser.PhallParser where
 import Common
 import Control.Applicative
 import Control.Monad as Monad
+import Control.Monad.Trans as Monad
+import Data.Either as Either
 import Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Data.Text.Lazy as Text
+import Data.Text.Lazy.IO as TextIO
 import FullSet
 import Lexer.PhallLexer as Lexer
 import Lexer.Symbol as Symbol
@@ -88,9 +91,10 @@ parseImport = do
 
 parsePath :: Parser PhallExpression
 parsePath = do
-  path <- Lexer.tokenizePath
-  --  TODO: import from file on given path
-  fail $ Text.unpack ("Tried to import a path: " <> path)
+  path <- Text.unpack <$> Lexer.tokenizePath
+  pathSource <- Monad.liftIO . TextIO.readFile $ path
+  pathExpression <- Monad.lift $ Megaparsec.runParserT parse path pathSource
+  Either.either (Monad.fail . Megaparsec.errorBundlePretty) Monad.return pathExpression
 
 parseExport :: Parser PhallExpression
 parseExport = do

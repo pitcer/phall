@@ -2,6 +2,7 @@ module Interpreter (runInterpreter) where
 
 import Common
 import Control.Monad.Except as Except
+import Control.Monad.Trans as Monad
 import qualified Data.List as List
 import Data.Text.Lazy.IO as TextIO
 import Error
@@ -30,17 +31,13 @@ interpret = do
   expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse sourceFile
   Except.liftIO $ PrettySimple.pPrint expression
   (typedExpression, expressionType) <-
-    Except.liftEither
-      . Except.runExcept
-      . Except.withExceptT TypeError
-      $ TypeEvaluator.evaluate expression
+    Except.liftEither . Except.runExcept . Except.withExceptT TypeError $
+      TypeEvaluator.evaluate expression
   Except.liftIO $ PrettySimple.pPrint typedExpression
   Except.liftIO . TextIO.putStrLn $ Type.getTypeName expressionType
   value <-
-    Except.liftEither
-      . Except.runExcept
-      . Except.withExceptT EvaluatorError
-      $ Evaluator.evaluate typedExpression
+    Except.liftEither . Except.runExcept . Except.withExceptT EvaluatorError $
+      Evaluator.evaluate typedExpression
   Except.liftIO $ PrettySimple.pPrint value
 
 type ExceptIO e = ExceptT e IO
@@ -48,4 +45,5 @@ type ExceptIO e = ExceptT e IO
 parseFromFile :: Parser PhallExpression -> String -> ExceptIO ParserError PhallExpression
 parseFromFile parser file = do
   text <- Except.liftIO $ TextIO.readFile file
-  Except.liftEither $ Megaparsec.parse parser file text
+  expression <- Monad.lift $ Megaparsec.runParserT parser file text
+  Except.liftEither expression

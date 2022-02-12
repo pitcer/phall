@@ -4,22 +4,26 @@ module ParserSpec where
 
 import Data.Text.Lazy (Text)
 import Error
-import Parser.PhallExpression
+import Parser.PhallExpression as Expression
 import qualified Parser.PhallParser as Parser (parse)
-import Test.Hspec (Spec, describe, it, shouldBe)
-import qualified Text.Megaparsec as Megaparsec (parse)
+import Parser.PhallType
+import Test.Hspec
+import qualified Text.Megaparsec as Megaparsec
 
 spec :: Spec
 spec = do
   describe "PhallParser.parse" $ do
     it "returns 1 integer contant from '1'" $ do
-      parse "1" `shouldBe` Right (ConstantExpression $ IntegerConstant 1)
+      expression <- parse "1"
+      expression `shouldBe` Right (ConstantExpression $ IntegerConstant 1)
 
     it "returns 1 integer contant from '(1)'" $ do
-      parse "(1)" `shouldBe` Right (ConstantExpression $ IntegerConstant 1)
+      expression <- parse "(1)"
+      expression `shouldBe` Right (ConstantExpression $ IntegerConstant 1)
 
     it "returns double application to variable 'add' from '((add 1) 2)'" $ do
-      parse "((add 1) 2)"
+      expression <- parse "((add 1) 2)"
+      expression
         `shouldBe` Right
           ( ApplicationExpression
               { function =
@@ -32,7 +36,8 @@ spec = do
           )
 
     it "returns double application to variable 'add' from '(add 1) 2'" $ do
-      parse "(add 1) 2"
+      expression <- parse "(add 1) 2"
+      expression
         `shouldBe` Right
           ( ApplicationExpression
               { function =
@@ -45,7 +50,8 @@ spec = do
           )
 
     it "returns double application to variable 'add' from 'add 1 2'" $ do
-      parse "add 1 2"
+      expression <- parse "add 1 2"
+      expression
         `shouldBe` Right
           ( ApplicationExpression
               { function =
@@ -58,7 +64,8 @@ spec = do
           )
 
     it "returns double application to variable 'add' from '((add a) 2)'" $ do
-      parse "((add a) 2)"
+      expression <- parse "((add a) 2)"
+      expression
         `shouldBe` Right
           ( ApplicationExpression
               { function =
@@ -71,7 +78,8 @@ spec = do
           )
 
     it "returns double application to variable 'add' from '(add a) 2'" $ do
-      parse "(add a) 2"
+      expression <- parse "(add a) 2"
+      expression
         `shouldBe` Right
           ( ApplicationExpression
               { function =
@@ -84,7 +92,8 @@ spec = do
           )
 
     it "returns double application to variable 'add' from 'add a 2'" $ do
-      parse "add a 2"
+      expression <- parse "add a 2"
+      expression
         `shouldBe` Right
           ( ApplicationExpression
               { function =
@@ -97,20 +106,21 @@ spec = do
           )
 
     it "parsers application inside lambda 'a b -> f a b'" $ do
-      parse "a b -> f a b"
+      expression <- parse "a b -> f a b"
+      expression
         `shouldBe` Right
           ( LambdaExpression
               { parameter =
                   LambdaParameter
                     { parameterName = "a",
-                      maybeParameterType = Nothing
+                      Expression.parameterType = UnknownType
                     },
                 body =
                   LambdaExpression
                     { parameter =
                         LambdaParameter
                           { parameterName = "b",
-                            maybeParameterType = Nothing
+                            Expression.parameterType = UnknownType
                           },
                       body =
                         ApplicationExpression
@@ -121,11 +131,11 @@ spec = do
                                 },
                             argument = VariableExpression "b"
                           },
-                      maybeBodyType = Nothing
+                      Expression.bodyType = UnknownType
                     },
-                maybeBodyType = Nothing
+                Expression.bodyType = UnknownType
               }
           )
 
-parse :: Text -> Either ParserError PhallExpression
-parse = Megaparsec.parse Parser.parse "hspec"
+parse :: Text -> IO (Either ParserError PhallExpression)
+parse = Megaparsec.runParserT Parser.parse "hspec"

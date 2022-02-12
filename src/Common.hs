@@ -1,10 +1,12 @@
-module Common (Parser, ParsecError, ParsecStream) where
+module Common where
 
 import Data.Text.Lazy as Text
 import Data.Void as Void
 import Text.Megaparsec as Megaparsec
 
-type Parser a = Parsec ParsecError ParsecStream a
+type ParserT m a = ParsecT ParsecError ParsecStream m a
+
+type Parser a = ParserT IO a
 
 type ParsecError = Void
 

@@ -55,4 +55,3 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - phall
-      - hspec

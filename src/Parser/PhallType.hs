@@ -40,6 +40,7 @@ type Name = Text
 instance Eq PhallType where
   AnyType == _ = True
   _ == AnyType = True
+  UnknownType == UnknownType = True
   ConstantType first == ConstantType second = first == second
   NamedType first == NamedType second = first == second
   ListType first == ListType second = first == second
@@ -65,7 +66,7 @@ fromTypeKeyword CharTypeKeyword = ConstantType CharType
 fromTypeKeyword StringTypeKeyword = ConstantType StringType
 
 getTypeName :: PhallType -> Text
-getTypeName UnknownType = error "Tried to get unknown type name"
+getTypeName UnknownType = "unknown type"
 getTypeName AnyType = enumName AnyTypeKeyword
 getTypeName (ConstantType BooleanType) = enumName BooleanTypeKeyword
 getTypeName (ConstantType IntegerType) = enumName IntegerTypeKeyword
