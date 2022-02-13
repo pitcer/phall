@@ -9,7 +9,7 @@ import Parser.PhallType
 
 type InternalCallType = ([PhallType], PhallType)
 
-internalCallType :: Name -> Except TypeError InternalCallType
+internalCallType :: Name -> Result InternalCallType
 internalCallType "add" = return arithmeticOperationType
 internalCallType "sub" = return arithmeticOperationType
 internalCallType "mul" = return arithmeticOperationType

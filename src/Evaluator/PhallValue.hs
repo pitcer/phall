@@ -2,11 +2,10 @@
 
 module Evaluator.PhallValue where
 
-import Control.Monad.Except as Except
 import qualified Data.List as List
 import Data.Text.Lazy as Text
 import Environment
-import Error (EvaluatorError)
+import Error
 import Parser.PhallType as Type
 import Text.JSON as Json
 
@@ -25,7 +24,7 @@ data PhallValue
   deriving (Show, Eq)
 
 newtype ClosureInner
-  = ClosureInner (PhallValue -> Except EvaluatorError PhallValue)
+  = ClosureInner (PhallValue -> Error.Result PhallValue)
 
 instance Show ClosureInner where
   show _ = "Closure"

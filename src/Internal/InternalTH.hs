@@ -4,7 +4,7 @@
 module Internal.InternalTH where
 
 import Control.Monad.Except as Except
-import Error (EvaluatorError (..))
+import Error
 import Evaluator.PhallValue (PhallValue (..))
 import Language.Haskell.TH
 
@@ -18,5 +18,5 @@ makeArithmeticOperation integerOperation floatOperation =
         return . FloatValue $ $(varE floatOperation) first second
       _ ->
         Except.throwError $
-          InvalidTypeError "Integer -> Integer -> Integer | Float -> Float -> Float" ""
+          TypeMismatchError "Integer -> Integer -> Integer | Float -> Float -> Float" "" ""
     |]

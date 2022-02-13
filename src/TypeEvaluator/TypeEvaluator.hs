@@ -8,18 +8,16 @@ import Control.Monad.Except as Except
 import qualified Data.List as List
 import Data.Text.Lazy as Text
 import Environment
-import Error (TypeError (..))
+import Error
 import Internal.InternalType as Internal
 import Parser.PhallExpression as Expression
 import Parser.PhallType as Type
 import TypeEvaluator.TypeEnvironment as TypeEnvironment
 
-type EvaluatorResult = Except TypeError
-
-evaluate :: PhallExpression -> EvaluatorResult PhallType
+evaluate :: PhallExpression -> Result PhallType
 evaluate = evaluateType Environment.empty
 
-evaluateType :: TypeEnvironment -> PhallExpression -> EvaluatorResult PhallType
+evaluateType :: TypeEnvironment -> PhallExpression -> Result PhallType
 evaluateType environment ImportExpression {importSource, importedItems, importBody} = do
   sourceType <- evaluateType Environment.empty importSource
   evaluateExportBundle sourceType
@@ -29,7 +27,7 @@ evaluateType environment ImportExpression {importSource, importedItems, importBo
       let extendedEnvironment = Environment.union environment restrictedEnvironment
       evaluateType extendedEnvironment importBody
     evaluateExportBundle _ =
-      Except.throwError MissingExportInImportedExpressionTypeError
+      Except.throwError MissingExportError
 evaluateType environment (ExportExpression exportedItems) = do
   let restrictedEnvironment = Environment.restrict environment exportedItems
   return (ExportBundleType restrictedEnvironment)
@@ -54,7 +52,7 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
       Except.throwError $
         TypeMismatchError
           { expectedType = "DataType(" <> instanceName <> ")",
-            foundType = Type.getTypeName instanceType,
+            actualType = Type.getTypeName instanceType,
             context = "evaluate data instance expression"
           }
 
@@ -64,7 +62,7 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
       return (result, evaluatedType)
 
     validateField ::
-      (DataTypeField, (DataInstanceField, PhallType)) -> Except TypeError ()
+      (DataTypeField, (DataInstanceField, PhallType)) -> Result ()
     validateField
       ( DataTypeField {Type.fieldName = typeFieldName, Type.fieldType},
         (DataInstanceField {Expression.fieldName}, evaluatedType)
@@ -74,7 +72,7 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
         Monad.unless (evaluatedType == fieldType) . Except.throwError $
           TypeMismatchError
             { expectedType = Type.getTypeName fieldType,
-              foundType = Type.getTypeName evaluatedType,
+              actualType = Type.getTypeName evaluatedType,
               context = "evaluate data instance expression"
             }
         return ()
@@ -84,7 +82,7 @@ evaluateType environment InternalCallExpression {calleeName, arguments} = do
   Monad.unless (argumentsTypes == callArgumentsTypes) . Except.throwError $
     TypeMismatchError
       { expectedType = "?",
-        foundType = "?",
+        actualType = "?",
         context = "evaluate internal call expression"
       }
   return callReturnType
@@ -103,7 +101,7 @@ evaluateType environment LambdaExpression {parameter, body, Expression.bodyType}
       Except.throwError $
         TypeMismatchError
           { expectedType = Type.getTypeName bodyType,
-            foundType = Type.getTypeName evaluatedBodyType,
+            actualType = Type.getTypeName evaluatedBodyType,
             context = "evaluate lambda expression"
           }
   where
@@ -118,7 +116,7 @@ evaluateType environment ApplicationExpression {function, argument} = do
       Monad.unless (parameterType == argumentType) . Except.throwError $
         TypeMismatchError
           { expectedType = Type.getTypeName parameterType,
-            foundType = Type.getTypeName argumentType,
+            actualType = Type.getTypeName argumentType,
             context = "evaluate application expression"
           }
       return bodyType
@@ -129,7 +127,7 @@ evaluateType environment ApplicationExpression {function, argument} = do
       Except.throwError $
         TypeMismatchError
           { expectedType = "Lambda",
-            foundType = Type.getTypeName functionType,
+            actualType = Type.getTypeName functionType,
             context = "evaluate application expression: " <> Text.pack (show function)
           }
 evaluateType environment (TupleExpression tuple) = do
@@ -141,7 +139,7 @@ evaluateType environment (ListExpression list) = do
   Monad.unless (Prelude.all (listType ==) elementsTypes) . Except.throwError $
     TypeMismatchError
       { expectedType = Type.getTypeName listType,
-        foundType =
+        actualType =
           "[" <> (Text.intercalate "," . Prelude.map Type.getTypeName $ elementsTypes) <> "]",
         context = "evaluate list expression"
       }
@@ -159,7 +157,7 @@ evaluateType environment ConditionalExpression {condition, positive, negative} =
       Monad.unless (positiveType == negativeType) . Except.throwError $
         TypeMismatchError
           { expectedType = Type.getTypeName positiveType,
-            foundType = Type.getTypeName negativeType,
+            actualType = Type.getTypeName negativeType,
             context = "evaluate conditional expression"
           }
 
@@ -168,7 +166,7 @@ evaluateType environment ConditionalExpression {condition, positive, negative} =
       Except.throwError $
         TypeMismatchError
           { expectedType = "Boolean",
-            foundType = Type.getTypeName conditionType,
+            actualType = Type.getTypeName conditionType,
             context = "evalueate conditional expression"
           }
 evaluateType _ (ConstantExpression constant) =

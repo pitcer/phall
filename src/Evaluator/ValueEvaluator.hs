@@ -4,7 +4,6 @@
 module Evaluator.ValueEvaluator where
 
 import Control.Monad as Monad
-import Control.Monad.Except (Except)
 import qualified Control.Monad.Except as Except
 import Environment
 import Error
@@ -14,12 +13,10 @@ import Internal.Internal as Internal
 import Parser.PhallExpression as Expression
 import Parser.PhallType as Type
 
-type EvaluatorResult a = Except EvaluatorError a
-
-evaluate :: PhallExpression -> EvaluatorResult PhallValue
+evaluate :: PhallExpression -> Result PhallValue
 evaluate = evaluateValue Environment.empty
 
-evaluateValue :: ValueEnvironment -> PhallExpression -> EvaluatorResult PhallValue
+evaluateValue :: ValueEnvironment -> PhallExpression -> Result PhallValue
 evaluateValue environment ImportExpression {importSource, importedItems, importBody} = do
   evaluated <- evaluateValue Environment.empty importSource
   evaluateExportBundle evaluated
@@ -29,7 +26,7 @@ evaluateValue environment ImportExpression {importSource, importedItems, importB
       let extendedEnvironment = Environment.union environment restrictedEnvironment
       evaluateValue extendedEnvironment importBody
     evaluateExportBundle _ =
-      Except.throwError MissingExportInImportedExpressionEvaluatorError
+      Except.throwError MissingExportError
 evaluateValue environment (ExportExpression exportedItems) = do
   let restrictedEnvironment = Environment.restrict environment exportedItems
   return $ ExportBundleValue restrictedEnvironment
@@ -61,9 +58,10 @@ evaluateValue environment ApplicationExpression {function, argument} = do
       closure evaluatedArgument
     evaluateClosure actualType =
       Except.throwError $
-        InvalidTypeError
-          { correctType = "Closure",
-            actualType = Type.getTypeName $ Value.getValueType actualType
+        TypeMismatchError
+          { expectedType = "Closure",
+            actualType = Type.getTypeName $ Value.getValueType actualType,
+            context = ""
           }
 evaluateValue environment (TupleExpression tuple) = do
   evaluatedTuple <- Monad.mapM (evaluateValue environment) tuple
@@ -81,9 +79,10 @@ evaluateValue environment ConditionalExpression {condition, positive, negative} 
         else evaluateValue environment negative
     evaluateCondition actualType = do
       Except.throwError $
-        InvalidTypeError
-          { correctType = "Boolean",
-            actualType = Type.getTypeName $ Value.getValueType actualType
+        TypeMismatchError
+          { expectedType = "Boolean",
+            actualType = Type.getTypeName $ Value.getValueType actualType,
+            context = ""
           }
 evaluateValue _ (ConstantExpression constant) =
   return $ evaluateConstant constant

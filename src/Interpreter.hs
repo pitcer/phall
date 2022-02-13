@@ -11,40 +11,32 @@ import Parser.PhallExpression
 import Parser.PhallParser as Parser
 import Parser.PhallType as Type
 import System.Environment as System
+import Text.JSON as Json
 import Text.Megaparsec as Megaparsec
 import Text.Pretty.Simple as PrettySimple
-import Text.JSON as Json
 import TypeEvaluator.TypeEvaluator as TypeEvaluator
 
 runInterpreter :: IO ()
 runInterpreter = do
   result <- Except.runExceptT interpret
   case result of
-    Left (ParserError errorBundle) -> Prelude.putStrLn $ Megaparsec.errorBundlePretty errorBundle
-    Left (TypeError typeError) -> print $ Error.message typeError
-    Left (EvaluatorError evaluatorError) -> print $ Error.message evaluatorError
+    Left phallError -> print $ Error.message phallError
     Right _ -> return ()
 
-interpret :: ExceptIO PhallError ()
+interpret :: ResultIO ()
 interpret = do
   inputArguments <- Except.lift System.getArgs
   let sourceFile = List.head inputArguments
-  expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse sourceFile
+  expression <- parseFromFile Parser.parse sourceFile
   Except.liftIO $ PrettySimple.pPrint expression
-  expressionType <-
-    Except.liftEither . Except.runExcept . Except.withExceptT TypeError $
-      TypeEvaluator.evaluate expression
+  expressionType <- Error.toResultIO $ TypeEvaluator.evaluate expression
   Except.liftIO . TextIO.putStrLn $ Type.getTypeName expressionType
-  value <-
-    Except.liftEither . Except.runExcept . Except.withExceptT EvaluatorError $
-      Evaluator.evaluate expression
+  value <- Error.toResultIO $ Evaluator.evaluate expression
   Except.liftIO $ PrettySimple.pPrint value
   Except.liftIO $ PrettySimple.pPrintString $ Json.encode value
 
-type ExceptIO e = ExceptT e IO
-
-parseFromFile :: Parser PhallExpression -> String -> ExceptIO ParserError PhallExpression
+parseFromFile :: Parser PhallExpression -> String -> ResultIO PhallExpression
 parseFromFile parser file = do
   text <- Except.liftIO $ TextIO.readFile file
   expression <- Monad.lift $ Megaparsec.runParserT parser file text
-  Except.liftEither expression
+  Except.withExceptT ParserError $ Except.liftEither expression

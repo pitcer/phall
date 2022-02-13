@@ -10,7 +10,7 @@ import Evaluator.PhallValue as Value
 import Internal.InternalTH as Internal
 import Parser.PhallType as Type
 
-internalCall :: Name -> [PhallValue] -> Except EvaluatorError PhallValue
+internalCall :: Name -> [PhallValue] -> Result PhallValue
 internalCall "add" [first, second] =
   $(makeArithmeticOperation '(+) '(+)) first second
 internalCall "sub" [first, second] =
@@ -29,18 +29,32 @@ internalCall "fold" [accumulate, base, ListValue list] = do
       accumulatorClosure <- unwrapClosure innerClosure
       accumulatorClosure accumulator
 internalCall "fold" [_, _, _] =
-  Except.throwError $ InvalidTypeError "(a -> b -> b) -> b -> [a] -> b" ""
+  Except.throwError $
+    TypeMismatchError
+      { expectedType = "(a -> b -> b) -> b -> [a] -> b",
+        actualType = "",
+        context = ""
+      }
 internalCall "cons" [element, ListValue list] =
   return . ListValue $ element : list
 internalCall "cons" [_, _] =
-  Except.throwError $ InvalidTypeError "a -> [a] -> [a]" ""
+  Except.throwError $
+    TypeMismatchError
+      { expectedType = "a -> [a] -> [a]",
+        actualType = "",
+        context = ""
+      }
 internalCall "isEqual" [first, second] =
   return . BooleanValue $ first == second
 internalCall name _ = Except.throwError $ VariableNotFound name
 
 unwrapClosure ::
-  PhallValue -> Except EvaluatorError (PhallValue -> Except EvaluatorError PhallValue)
+  PhallValue -> Result (PhallValue -> Result PhallValue)
 unwrapClosure (ClosureValue (ClosureInner closure)) = return closure
 unwrapClosure value =
-  Except.throwError . InvalidTypeError "Closure" . Type.getTypeName $
-    Value.getValueType value
+  Except.throwError $
+    TypeMismatchError
+      { expectedType = "Closure",
+        actualType = Type.getTypeName $ Value.getValueType value,
+        context = ""
+      }
