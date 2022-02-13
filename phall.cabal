@@ -27,9 +27,9 @@ library
       Common
       Environment
       Error
-      Evaluator.PhallEvaluator
       Evaluator.PhallValue
       Evaluator.ValueEnvironment
+      Evaluator.ValueEvaluator
       FullSet
       Internal.Internal
       Internal.InternalTH

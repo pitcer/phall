@@ -10,7 +10,8 @@ import Error (EvaluatorError)
 import Parser.PhallType as Type
 
 data PhallValue
-  = BooleanValue Bool
+  = UnitValue
+  | BooleanValue Bool
   | IntegerValue Integer
   | FloatValue Double
   | CharValue Char
@@ -32,6 +33,7 @@ instance Eq ClosureInner where
   _ == _ = False
 
 getValueType :: PhallValue -> PhallType
+getValueType UnitValue = ConstantType UnitType
 getValueType (BooleanValue _) = ConstantType BooleanType
 getValueType (IntegerValue _) = ConstantType IntegerType
 getValueType (FloatValue _) = ConstantType FloatType

@@ -1,7 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Evaluator.PhallEvaluator where
+module Evaluator.ValueEvaluator where
 
 import Control.Monad as Monad
 import Control.Monad.Except (Except)
@@ -92,6 +92,7 @@ evaluateValue environment (VariableExpression name) =
   ValueEnvironment.getVariable environment name
 
 evaluateConstant :: PhallConstant -> PhallValue
+evaluateConstant UnitConstant = UnitValue
 evaluateConstant (BooleanConstant boolean) = BooleanValue boolean
 evaluateConstant (IntegerConstant integer) = IntegerValue integer
 evaluateConstant (FloatConstant float) = FloatValue float

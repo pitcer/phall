@@ -58,7 +58,8 @@ data DataInstanceField = DataInstanceField
   deriving (Show, Eq)
 
 data PhallConstant
-  = BooleanConstant Bool
+  = UnitConstant
+  | BooleanConstant Bool
   | IntegerConstant Integer
   | FloatConstant Double
   | CharConstant Char

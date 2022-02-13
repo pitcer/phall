@@ -279,13 +279,11 @@ parseConstant =
         CharConstant <$> Lexer.tokenizeChar,
         StringConstant <$> Lexer.tokenizeString
       ]
-
-parseBoolean :: Parser Bool
-parseBoolean =
-  Megaparsec.choice
-    [ True <$ Lexer.tokenizeKeyword TrueKeyword,
-      False <$ Lexer.tokenizeKeyword FalseKeyword
-    ]
+    parseBoolean =
+      Megaparsec.choice
+        [ True <$ Lexer.tokenizeKeyword TrueKeyword,
+          False <$ Lexer.tokenizeKeyword FalseKeyword
+        ]
 
 parseVariable :: Parser PhallExpression
 parseVariable =

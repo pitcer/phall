@@ -25,7 +25,8 @@ data PhallType
   deriving (Show)
 
 data PhallConstantType
-  = BooleanType
+  = UnitType
+  | BooleanType
   | IntegerType
   | FloatType
   | CharType
@@ -69,6 +70,7 @@ fromTypeKeyword StringTypeKeyword = ConstantType StringType
 getTypeName :: PhallType -> Text
 getTypeName UnknownType = "unknown type"
 getTypeName AnyType = enumName AnyTypeKeyword
+getTypeName (ConstantType UnitType) = enumName UnitSymbol
 getTypeName (ConstantType BooleanType) = enumName BooleanTypeKeyword
 getTypeName (ConstantType IntegerType) = enumName IntegerTypeKeyword
 getTypeName (ConstantType FloatType) = enumName FloatTypeKeyword

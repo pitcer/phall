@@ -218,6 +218,7 @@ evaluateType environment expression@(VariableExpression name) = do
   return (expression, variableType)
 
 evaluateConstantType :: PhallConstant -> PhallType
+evaluateConstantType UnitConstant = ConstantType UnitType
 evaluateConstantType (BooleanConstant _) = ConstantType BooleanType
 evaluateConstantType (IntegerConstant _) = ConstantType IntegerType
 evaluateConstantType (FloatConstant _) = ConstantType FloatType

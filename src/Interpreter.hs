@@ -6,7 +6,7 @@ import Control.Monad.Trans as Monad
 import qualified Data.List as List
 import Data.Text.Lazy.IO as TextIO
 import Error
-import Evaluator.PhallEvaluator as Evaluator
+import Evaluator.ValueEvaluator as Evaluator
 import Parser.PhallExpression
 import Parser.PhallParser as Parser
 import Parser.PhallType as Type
