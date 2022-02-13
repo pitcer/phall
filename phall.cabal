@@ -34,7 +34,6 @@ library
       Internal.Internal
       Internal.InternalTH
       Internal.InternalType
-      Interpreter
       Lexer.PhallLexer
       Lexer.Symbol
       Parser.PhallExpression
@@ -63,6 +62,7 @@ library
 executable phall-exe
   main-is: Main.hs
   other-modules:
+      Interpreter
       Paths_phall
   hs-source-dirs:
       app

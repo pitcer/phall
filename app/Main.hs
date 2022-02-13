@@ -1,6 +1,9 @@
 module Main where
 
-import qualified Interpreter
+import Interpreter
+import System.Environment as System
 
 main :: IO ()
-main = Interpreter.runInterpreter
+main = do
+  inputArguments <- System.getArgs
+  Interpreter.handleCommand inputArguments
