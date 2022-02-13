@@ -16,37 +16,29 @@ import TypeEvaluator.TypeEnvironment as TypeEnvironment
 
 type EvaluatorResult = Except TypeError
 
-evaluate :: PhallExpression -> EvaluatorResult (PhallExpression, PhallType)
+evaluate :: PhallExpression -> EvaluatorResult PhallType
 evaluate = evaluateType Environment.empty
 
-evaluateType :: TypeEnvironment -> PhallExpression -> EvaluatorResult (PhallExpression, PhallType)
+evaluateType :: TypeEnvironment -> PhallExpression -> EvaluatorResult PhallType
 evaluateType environment ImportExpression {importSource, importedItems, importBody} = do
-  (sourceExpression, sourceType) <- evaluateType Environment.empty importSource
-  evaluateExportBundle sourceExpression sourceType
+  sourceType <- evaluateType Environment.empty importSource
+  evaluateExportBundle sourceType
   where
-    evaluateExportBundle sourceExpression (ExportBundleType exportedEnvironment) = do
+    evaluateExportBundle (ExportBundleType exportedEnvironment) = do
       let restrictedEnvironment = Environment.restrict exportedEnvironment importedItems
       let extendedEnvironment = Environment.union environment restrictedEnvironment
-      (bodyExpression, bodyType) <- evaluateType extendedEnvironment importBody
-      return (ImportExpression sourceExpression importedItems bodyExpression, bodyType)
-    evaluateExportBundle _ _ =
+      evaluateType extendedEnvironment importBody
+    evaluateExportBundle _ =
       Except.throwError MissingExportInImportedExpressionTypeError
-evaluateType environment expression@(ExportExpression exportedItems) = do
+evaluateType environment (ExportExpression exportedItems) = do
   let restrictedEnvironment = Environment.restrict environment exportedItems
-  return (expression, ExportBundleType restrictedEnvironment)
+  return (ExportBundleType restrictedEnvironment)
 evaluateType
   environment
   DataDeclarationExpression {declarationName, declarationFields, declarationBody} = do
     let declarationType = DataType declarationFields
     let bodyEnvironment = Environment.with declarationName declarationType environment
-    (filledBody, bodyType) <- evaluateType bodyEnvironment declarationBody
-    let expression =
-          DataDeclarationExpression
-            { declarationName,
-              declarationFields,
-              declarationBody = filledBody
-            }
-    return (expression, bodyType)
+    evaluateType bodyEnvironment declarationBody
 evaluateType environment DataInstanceExpression {instanceName, instanceFields} = do
   instanceType <- TypeEnvironment.getType environment instanceName
   evaluateDataType instanceType
@@ -55,11 +47,9 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
       let sortedTypeFields = List.sortOn Type.fieldName typeFields
       let sortedInstanceFields = List.sortOn Expression.fieldName instanceFields
       evaluatedInstanceFields <- Monad.mapM evaluateInstanceField sortedInstanceFields
-      validatedFields <-
-        Monad.zipWithM validateField sortedTypeFields evaluatedInstanceFields
-      let result = DataInstanceExpression {instanceName, instanceFields = validatedFields}
+      Monad.mapM_ validateField $ Prelude.zip sortedTypeFields evaluatedInstanceFields
       let resultType = NamedType instanceName
-      return (result, resultType)
+      return resultType
     evaluateDataType instanceType =
       Except.throwError $
         TypeMismatchError
@@ -69,15 +59,16 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
           }
 
     evaluateInstanceField DataInstanceField {Expression.fieldName, fieldValue} = do
-      (evaluatedValue, evaluatedType) <- evaluateType environment fieldValue
-      let result = DataInstanceField {Expression.fieldName, fieldValue = evaluatedValue}
+      evaluatedType <- evaluateType environment fieldValue
+      let result = DataInstanceField {Expression.fieldName, fieldValue}
       return (result, evaluatedType)
 
     validateField ::
-      DataTypeField -> (DataInstanceField, PhallType) -> Except TypeError DataInstanceField
+      (DataTypeField, (DataInstanceField, PhallType)) -> Except TypeError ()
     validateField
-      DataTypeField {Type.fieldName = typeFieldName, Type.fieldType}
-      (field@DataInstanceField {Expression.fieldName}, evaluatedType) = do
+      ( DataTypeField {Type.fieldName = typeFieldName, Type.fieldType},
+        (DataInstanceField {Expression.fieldName}, evaluatedType)
+        ) = do
         Monad.unless (fieldName == typeFieldName) . Except.throwError $
           FieldNamesMismatchError {typeFieldName, actualFieldName = fieldName}
         Monad.unless (evaluatedType == fieldType) . Except.throwError $
@@ -86,9 +77,9 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
               foundType = Type.getTypeName evaluatedType,
               context = "evaluate data instance expression"
             }
-        return field
+        return ()
 evaluateType environment InternalCallExpression {calleeName, arguments} = do
-  (argumentsExpressions, argumentsTypes) <- Monad.mapAndUnzipM (evaluateType environment) arguments
+  argumentsTypes <- Monad.mapM (evaluateType environment) arguments
   (callArgumentsTypes, callReturnType) <- Internal.internalCallType calleeName
   Monad.unless (argumentsTypes == callArgumentsTypes) . Except.throwError $
     TypeMismatchError
@@ -96,18 +87,18 @@ evaluateType environment InternalCallExpression {calleeName, arguments} = do
         foundType = "?",
         context = "evaluate internal call expression"
       }
-  return (InternalCallExpression {calleeName, arguments = argumentsExpressions}, callReturnType)
+  return callReturnType
 evaluateType environment LambdaExpression {parameter, body, Expression.bodyType} = do
   let parameterType = evaluateParameterType $ Expression.parameterType parameter
   let parameterName = Expression.parameterName parameter
   let bodyEnvironment = Environment.with parameterName parameterType environment
-  (evaluatedBody, evaluatedBodyType) <- evaluateType bodyEnvironment body
+  evaluatedBodyType <- evaluateType bodyEnvironment body
   case bodyType of
     UnknownType ->
-      return $ createLambdaResult parameterType evaluatedBody evaluatedBodyType
+      return $ LambdaType parameterType evaluatedBodyType
     _
       | bodyType == evaluatedBodyType ->
-        return $ createLambdaResult parameterType evaluatedBody evaluatedBodyType
+        return $ LambdaType parameterType evaluatedBodyType
     _ ->
       Except.throwError $
         TypeMismatchError
@@ -116,62 +107,36 @@ evaluateType environment LambdaExpression {parameter, body, Expression.bodyType}
             context = "evaluate lambda expression"
           }
   where
-    createLambdaResult parameterType evaluatedBody evaluatedBodyType = do
-      let result =
-            LambdaExpression
-              { parameter,
-                body = evaluatedBody,
-                Expression.bodyType = evaluatedBodyType
-              }
-      let resultType =
-            LambdaType
-              { Type.parameterType = parameterType,
-                Type.bodyType = evaluatedBodyType
-              }
-      (result, resultType)
-
     evaluateParameterType UnknownType = AnyType -- TODO: get from body context
     evaluateParameterType other = other
 evaluateType environment ApplicationExpression {function, argument} = do
-  (functionExpression, functionType) <- evaluateType environment function
-  evaluateFunctionType functionExpression functionType
+  functionType <- evaluateType environment function
+  evaluateFunctionType functionType
   where
-    evaluateFunctionType functionExpression LambdaType {Type.parameterType, Type.bodyType} = do
-      (argumentExpression, argumentType) <- evaluateType environment argument
+    evaluateFunctionType LambdaType {Type.parameterType, Type.bodyType} = do
+      argumentType <- evaluateType environment argument
       Monad.unless (parameterType == argumentType) . Except.throwError $
         TypeMismatchError
           { expectedType = Type.getTypeName parameterType,
             foundType = Type.getTypeName argumentType,
             context = "evaluate application expression"
           }
-      let result =
-            ApplicationExpression
-              { function = functionExpression,
-                argument = argumentExpression
-              }
-      return (result, bodyType)
+      return bodyType
     -- TODO: remove temporary fix
-    evaluateFunctionType functionExpression AnyType = do
-      (argumentExpression, _) <- evaluateType environment argument
-      let result =
-            ApplicationExpression
-              { function = functionExpression,
-                argument = argumentExpression
-              }
-      return (result, AnyType)
+    evaluateFunctionType AnyType = return AnyType
     --
-    evaluateFunctionType _ functionType =
+    evaluateFunctionType functionType =
       Except.throwError $
         TypeMismatchError
           { expectedType = "Lambda",
             foundType = Type.getTypeName functionType,
-            context = "evaluate application expression"
+            context = "evaluate application expression: " <> Text.pack (show function)
           }
 evaluateType environment (TupleExpression tuple) = do
-  (patchedTuple, elementsTypes) <- Monad.mapAndUnzipM (evaluateType environment) tuple
-  return (TupleExpression patchedTuple, TupleType elementsTypes)
+  elementsTypes <- Monad.mapM (evaluateType environment) tuple
+  return (TupleType elementsTypes)
 evaluateType environment (ListExpression list) = do
-  (patchedList, elementsTypes) <- Monad.mapAndUnzipM (evaluateType environment) list
+  elementsTypes <- Monad.mapM (evaluateType environment) list
   let listType = getListType elementsTypes
   Monad.unless (Prelude.all (listType ==) elementsTypes) . Except.throwError $
     TypeMismatchError
@@ -180,42 +145,36 @@ evaluateType environment (ListExpression list) = do
           "[" <> (Text.intercalate "," . Prelude.map Type.getTypeName $ elementsTypes) <> "]",
         context = "evaluate list expression"
       }
-  return (ListExpression patchedList, ListType listType)
+  return (ListType listType)
   where
     getListType [] = AnyType
     getListType types = Prelude.head types
 evaluateType environment ConditionalExpression {condition, positive, negative} = do
-  (conditionExpression, conditionType) <- evaluateType environment condition
-  evaluateConditionType conditionExpression conditionType
+  conditionType <- evaluateType environment condition
+  evaluateConditionType conditionType
   where
-    evaluateConditionType conditionExpression (ConstantType BooleanType) = do
-      (positiveExpression, positiveType) <- evaluateType environment positive
-      (negativeExpression, negativeType) <- evaluateType environment negative
+    evaluateConditionType (ConstantType BooleanType) = do
+      positiveType <- evaluateType environment positive
+      negativeType <- evaluateType environment negative
       Monad.unless (positiveType == negativeType) . Except.throwError $
         TypeMismatchError
           { expectedType = Type.getTypeName positiveType,
             foundType = Type.getTypeName negativeType,
             context = "evaluate conditional expression"
           }
-      let result =
-            ConditionalExpression
-              { condition = conditionExpression,
-                positive = positiveExpression,
-                negative = negativeExpression
-              }
-      return (result, positiveType)
-    evaluateConditionType _ conditionType =
+
+      return positiveType
+    evaluateConditionType conditionType =
       Except.throwError $
         TypeMismatchError
           { expectedType = "Boolean",
             foundType = Type.getTypeName conditionType,
             context = "evalueate conditional expression"
           }
-evaluateType _ expression@(ConstantExpression constant) =
-  return (expression, evaluateConstantType constant)
-evaluateType environment expression@(VariableExpression name) = do
-  variableType <- TypeEnvironment.getType environment name
-  return (expression, variableType)
+evaluateType _ (ConstantExpression constant) =
+  return (evaluateConstantType constant)
+evaluateType environment (VariableExpression name) = do
+  TypeEnvironment.getType environment name
 
 evaluateConstantType :: PhallConstant -> PhallType
 evaluateConstantType UnitConstant = ConstantType UnitType

@@ -30,14 +30,13 @@ interpret = do
   let sourceFile = List.head inputArguments
   expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse sourceFile
   Except.liftIO $ PrettySimple.pPrint expression
-  (typedExpression, expressionType) <-
+  (expressionType) <-
     Except.liftEither . Except.runExcept . Except.withExceptT TypeError $
       TypeEvaluator.evaluate expression
-  Except.liftIO $ PrettySimple.pPrint typedExpression
   Except.liftIO . TextIO.putStrLn $ Type.getTypeName expressionType
   value <-
     Except.liftEither . Except.runExcept . Except.withExceptT EvaluatorError $
-      Evaluator.evaluate typedExpression
+      Evaluator.evaluate expression
   Except.liftIO $ PrettySimple.pPrint value
 
 type ExceptIO e = ExceptT e IO
