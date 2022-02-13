@@ -13,6 +13,7 @@ import Parser.PhallType as Type
 import System.Environment as System
 import Text.Megaparsec as Megaparsec
 import Text.Pretty.Simple as PrettySimple
+import Text.JSON as Json
 import TypeEvaluator.TypeEvaluator as TypeEvaluator
 
 runInterpreter :: IO ()
@@ -30,7 +31,7 @@ interpret = do
   let sourceFile = List.head inputArguments
   expression <- Except.withExceptT ParserError $ parseFromFile Parser.parse sourceFile
   Except.liftIO $ PrettySimple.pPrint expression
-  (expressionType) <-
+  expressionType <-
     Except.liftEither . Except.runExcept . Except.withExceptT TypeError $
       TypeEvaluator.evaluate expression
   Except.liftIO . TextIO.putStrLn $ Type.getTypeName expressionType
@@ -38,6 +39,7 @@ interpret = do
     Except.liftEither . Except.runExcept . Except.withExceptT EvaluatorError $
       Evaluator.evaluate expression
   Except.liftIO $ PrettySimple.pPrint value
+  Except.liftIO $ PrettySimple.pPrintString $ Json.encode value
 
 type ExceptIO e = ExceptT e IO
 

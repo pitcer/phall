@@ -50,6 +50,7 @@ library
       base
     , containers
     , hspec
+    , json
     , megaparsec
     , monad-extras
     , mtl
@@ -70,6 +71,7 @@ executable phall-exe
       base
     , containers
     , hspec
+    , json
     , megaparsec
     , monad-extras
     , mtl
@@ -94,6 +96,7 @@ test-suite phall-test
       base
     , containers
     , hspec
+    , json
     , megaparsec
     , monad-extras
     , mtl

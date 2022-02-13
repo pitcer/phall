@@ -4,4 +4,5 @@ playground/
 .stack-work/
 .idea/
 *.iml
+*.json
 *~

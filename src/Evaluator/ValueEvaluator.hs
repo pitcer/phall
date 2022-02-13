@@ -6,7 +6,6 @@ module Evaluator.ValueEvaluator where
 import Control.Monad as Monad
 import Control.Monad.Except (Except)
 import qualified Control.Monad.Except as Except
-import Data.Map as Map
 import Environment
 import Error
 import Evaluator.PhallValue as Value
@@ -37,12 +36,12 @@ evaluateValue environment (ExportExpression exportedItems) = do
 evaluateValue environment DataDeclarationExpression {declarationBody} =
   evaluateValue environment declarationBody
 evaluateValue environment DataInstanceExpression {instanceFields} = do
-  fields <- Monad.foldM evaluateField Map.empty instanceFields
+  fields <- Monad.mapM evaluateField instanceFields
   return $ DataValue fields
   where
-    evaluateField fields DataInstanceField {Expression.fieldName, fieldValue} = do
+    evaluateField DataInstanceField {Expression.fieldName, fieldValue} = do
       value <- evaluateValue environment fieldValue
-      return $ Map.insert fieldName value fields
+      return (fieldName, value)
 evaluateValue environment InternalCallExpression {calleeName, arguments} = do
   evaluatedArguments <- Monad.mapM (evaluateValue environment) arguments
   Internal.internalCall calleeName evaluatedArguments
