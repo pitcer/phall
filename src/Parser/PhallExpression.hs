@@ -1,9 +1,11 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Parser.PhallExpression where
 
 import Common
 import Data.Text.Lazy as Text
 import FullSet
-import Parser.PhallType
+import Parser.PhallType as Type
 
 data PhallExpression
   = ImportExpression
@@ -19,7 +21,7 @@ data PhallExpression
       }
   | DataDeclarationExpression
       { declarationName :: Name,
-        declarationFields :: [DataTypeField],
+        declarationFields :: [DataDeclarationField],
         declarationBody :: PhallExpression
       }
   | EnumDeclarationExpression
@@ -61,6 +63,19 @@ data LambdaParameter = LambdaParameter
   }
   deriving (Show, Eq)
 
+data DataDeclarationField = DataDeclarationField
+  { declarationFieldName :: Name,
+    declarationFieldType :: PhallType,
+    declarationFieldDefaultValue :: Maybe PhallExpression
+  }
+  deriving (Show, Eq)
+
+toTypeField :: DataDeclarationField -> DataTypeField
+toTypeField (DataDeclarationField fieldName fieldType Nothing) =
+  DataTypeField {Type.fieldName, Type.fieldType, Type.fieldHasDefault = False}
+toTypeField (DataDeclarationField fieldName fieldType (Just _)) =
+  DataTypeField {Type.fieldName, Type.fieldType, Type.fieldHasDefault = True}
+
 data EnumVariant = EnumVariant
   { enumVariantName :: Name,
     enumVariantValue :: PhallExpression
@@ -75,6 +90,7 @@ data DataInstanceField = DataInstanceField
 
 data PhallConstant
   = UnitConstant
+  | NoneConstant
   | BooleanConstant Bool
   | IntegerConstant Integer
   | FloatConstant Double

@@ -3,9 +3,11 @@
 
 module TypeEvaluator.TypeEvaluator where
 
+import Common
 import Control.Monad as Monad
 import Control.Monad.Except as Except
 import qualified Data.List as List
+import Data.Map as Map
 import Data.Text.Lazy as Text
 import Environment
 import Error
@@ -39,9 +41,22 @@ evaluateType
 evaluateType
   environment
   DataDeclarationExpression {declarationName, declarationFields, declarationBody} = do
-    let declarationType = DataType declarationFields
+    Monad.mapM_ validateFieldDefaultValueType declarationFields
+    let declarationType = DataType $ List.map Expression.toTypeField declarationFields
     let bodyEnvironment = Environment.with declarationName declarationType environment
     evaluateType bodyEnvironment declarationBody
+    where
+      validateFieldDefaultValueType DataDeclarationField {declarationFieldDefaultValue = Nothing} =
+        return ()
+      validateFieldDefaultValueType (DataDeclarationField _ fieldType (Just defaultValue)) = do
+        evaluatedType <- evaluateType environment defaultValue
+        Monad.unless (fieldType == evaluatedType) . Except.throwError $
+          TypeMismatchError
+            { expectedType = Type.getTypeName fieldType,
+              actualType = Type.getTypeName evaluatedType,
+              context = "evaluate data declaration default value expression"
+            }
+        return ()
 evaluateType
   environment
   EnumDeclarationExpression {enumDeclarationName, enumDeclarationVariants, enumDeclarationBody} = do
@@ -60,10 +75,8 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
     instanceNamedType = NamedType instanceName
 
     evaluateDataType (DataType typeFields) = do
-      let sortedTypeFields = List.sortOn Type.fieldName typeFields
-      let sortedInstanceFields = List.sortOn Expression.fieldName instanceFields
-      evaluatedInstanceFields <- Monad.mapM evaluateInstanceField sortedInstanceFields
-      Monad.mapM_ validateField $ Prelude.zip sortedTypeFields evaluatedInstanceFields
+      evaluatedInstanceFields <- Map.fromList <$> Monad.mapM evaluateInstanceField instanceFields
+      Monad.mapM_ (validateField evaluatedInstanceFields) typeFields
       return instanceNamedType
     evaluateDataType instanceType =
       Except.throwError $
@@ -75,24 +88,21 @@ evaluateType environment DataInstanceExpression {instanceName, instanceFields} =
 
     evaluateInstanceField DataInstanceField {Expression.fieldName, fieldValue} = do
       evaluatedType <- evaluateType environment fieldValue
-      let result = DataInstanceField {Expression.fieldName, fieldValue}
-      return (result, evaluatedType)
+      return (fieldName, evaluatedType)
 
-    validateField ::
-      (DataTypeField, (DataInstanceField, PhallType)) -> Result ()
-    validateField
-      ( DataTypeField {Type.fieldName = typeFieldName, Type.fieldType},
-        (DataInstanceField {Expression.fieldName}, evaluatedType)
-        ) = do
-        Monad.unless (fieldName == typeFieldName) . Except.throwError $
-          FieldNamesMismatchError {typeFieldName, actualFieldName = fieldName}
-        Monad.unless (evaluatedType == fieldType) . Except.throwError $
-          TypeMismatchError
-            { expectedType = Type.getTypeName fieldType,
-              actualType = Type.getTypeName evaluatedType,
-              context = "evaluate data instance expression"
-            }
-        return ()
+    validateField :: Map Name PhallType -> DataTypeField -> Result ()
+    validateField fields DataTypeField {Type.fieldName, Type.fieldType, fieldHasDefault} = do
+      case Map.lookup fieldName fields of
+        Nothing | fieldHasDefault -> return ()
+        Nothing -> Except.throwError $ FieldInstanceNotFoundError {Error.fieldName = fieldName}
+        Just instanceFieldType -> do
+          Monad.unless (fieldType == instanceFieldType) . Except.throwError $
+            TypeMismatchError
+              { expectedType = Type.getTypeName fieldType,
+                actualType = Type.getTypeName instanceFieldType,
+                context = "evaluate data instance expression"
+              }
+          return ()
 evaluateType environment InternalCallExpression {calleeName, arguments} = do
   argumentsTypes <- Monad.mapM (evaluateType environment) arguments
   (callArgumentsTypes, callReturnType) <- Internal.internalCallType calleeName
@@ -193,6 +203,7 @@ evaluateType environment (VariableExpression name) = do
 
 evaluateConstantType :: PhallConstant -> PhallType
 evaluateConstantType UnitConstant = ConstantType UnitType
+evaluateConstantType NoneConstant = UnknownType
 evaluateConstantType (BooleanConstant _) = ConstantType BooleanType
 evaluateConstantType (IntegerConstant _) = ConstantType IntegerType
 evaluateConstantType (FloatConstant _) = ConstantType FloatType

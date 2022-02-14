@@ -33,9 +33,8 @@ data PhallError
   | UnknownInternalCall
       { callName :: Text
       }
-  | FieldNamesMismatchError
-      { typeFieldName :: Text,
-        actualFieldName :: Text
+  | FieldInstanceNotFoundError
+      { fieldName :: Text
       }
   | UnexpectedExportError
   | MissingExportError
@@ -57,13 +56,11 @@ message VariableNotFound {variableName} =
   "VariableNotFound: Variable '" <> variableName <> "' not found in environment"
 message UnknownInternalCall {callName} =
   "UnknownInternalCall: @" <> callName <> "."
+message FieldInstanceNotFoundError {fieldName} =
+  "FieldInstanceNotFound: Missing instance for field '" <> fieldName <> "'."
 message UnexpectedExportError =
   "UnexpectedExportError: export occured in not imported expression."
 message MissingExportError =
   "MissingExportError: export not occured in imported expression."
 message (CustomError text) =
   "CustomError: " <> text
-message FieldNamesMismatchError {typeFieldName, actualFieldName} =
-  "FieldNamesMismatchError: Invalid field name, declared '" <> typeFieldName <> "' but get '"
-    <> actualFieldName
-    <> "'."

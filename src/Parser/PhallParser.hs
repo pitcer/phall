@@ -133,10 +133,27 @@ parseDataDeclaration = do
   Lexer.tokenizeKeyword DataKeyword
   declarationName <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol EqualitySymbol
-  declarationFields <- Megaparsec.some $ parseOptionalComma parseField parseField
+  declarationFields <-
+    Megaparsec.some $
+      parseOptionalComma (parseField parseInnerExpression) (parseField parseExpression)
   Lexer.tokenizeKeyword InKeyword
   declarationBody <- parseExpression
   return DataDeclarationExpression {declarationName, declarationFields, declarationBody}
+  where
+    parseField :: Parser PhallExpression -> Parser DataDeclarationField
+    parseField defaultValueParser = do
+      declarationFieldName <- Lexer.tokenizeIdentifier
+      Lexer.tokenizeSymbol ColonSymbol
+      declarationFieldType <- parseType
+      declarationFieldDefaultValue <-
+        Megaparsec.optional $
+          Lexer.tokenizeSymbol EqualitySymbol *> defaultValueParser
+      return
+        DataDeclarationField
+          { declarationFieldName,
+            declarationFieldType,
+            declarationFieldDefaultValue
+          }
 
 parseEnumDeclaration :: Parser PhallExpression
 parseEnumDeclaration = do
@@ -145,9 +162,7 @@ parseEnumDeclaration = do
   Lexer.tokenizeSymbol EqualitySymbol
   enumDeclarationVariants <-
     Megaparsec.some $
-      parseOptionalComma
-        (parseVariant parseInnerExpression)
-        (parseVariant parseExpression)
+      parseOptionalComma (parseVariant parseInnerExpression) (parseVariant parseExpression)
   Lexer.tokenizeKeyword InKeyword
   enumDeclarationBody <- parseExpression
   return
@@ -180,13 +195,6 @@ parseDataInstance = do
       Lexer.tokenizeSymbol EqualitySymbol
       fieldValue <- valueParser
       return DataInstanceField {Expression.fieldName, Expression.fieldValue}
-
-parseField :: Parser DataTypeField
-parseField = do
-  fieldName <- Lexer.tokenizeIdentifier
-  Lexer.tokenizeSymbol ColonSymbol
-  fieldType <- parseType
-  return DataTypeField {Type.fieldName, Type.fieldType}
 
 parseLet :: Parser PhallExpression
 parseLet = do
@@ -256,7 +264,9 @@ parseConstant =
   Megaparsec.choice $ map Megaparsec.try constants
   where
     constants =
-      [ BooleanConstant <$> parseBoolean,
+      [ UnitConstant <$ Lexer.tokenizeSymbol UnitSymbol,
+        NoneConstant <$ Lexer.tokenizeKeyword NoneKeyword,
+        BooleanConstant <$> parseBoolean,
         FloatConstant <$> Lexer.tokenizeSignedFloat,
         IntegerConstant <$> Lexer.tokenizeSignedInteger,
         CharConstant <$> Lexer.tokenizeChar,

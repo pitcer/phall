@@ -35,7 +35,8 @@ data PhallConstantType
 
 data DataTypeField = DataTypeField
   { fieldName :: Name,
-    fieldType :: PhallType
+    fieldType :: PhallType,
+    fieldHasDefault :: Bool
   }
   deriving (Show, Eq)
 

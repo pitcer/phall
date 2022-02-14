@@ -5,6 +5,7 @@ module Evaluator.ValueEvaluator where
 
 import Control.Monad as Monad
 import qualified Control.Monad.Except as Except
+import Data.Map as Map
 import Data.Text.Lazy as Text
 import Environment
 import Error
@@ -33,8 +34,20 @@ evaluateValue environment (ExportExpression exportedItems) = do
   return $ ExportBundleValue restrictedEnvironment
 evaluateValue environment TypeDeclarationExpression {typeDeclarationBody} =
   evaluateValue environment typeDeclarationBody
-evaluateValue environment DataDeclarationExpression {declarationBody} =
-  evaluateValue environment declarationBody
+evaluateValue
+  environment
+  DataDeclarationExpression {declarationName, declarationFields, declarationBody} = do
+    fields <- DataValue <$> evaluateDefaultValues declarationFields
+    let bodyEnvironment = Environment.with declarationName fields environment
+    evaluateValue bodyEnvironment declarationBody
+    where
+      evaluateDefaultValues fields = do
+        let withDefault = [(name, value) | (DataDeclarationField name _ (Just value)) <- fields]
+        Map.fromList <$> Monad.mapM evaluateDefaultValue withDefault
+
+      evaluateDefaultValue (name, defaultExpression) = do
+        value <- evaluateValue environment defaultExpression
+        return (name, value)
 evaluateValue
   environment
   EnumDeclarationExpression {enumDeclarationVariants, enumDeclarationBody} = do
@@ -44,9 +57,12 @@ evaluateValue
       extendEnvironment accumulator EnumVariant {enumVariantName, enumVariantValue} = do
         evaluatedValue <- EnumValue <$> evaluateValue environment enumVariantValue
         return $ Environment.with enumVariantName evaluatedValue accumulator
-evaluateValue environment DataInstanceExpression {instanceFields} = do
-  fields <- Monad.mapM evaluateField instanceFields
-  return $ DataValue fields
+evaluateValue environment DataInstanceExpression {instanceName, instanceFields} = do
+  fields <- Map.fromList <$> Monad.mapM evaluateField instanceFields
+  let dataDeclaration = Environment.lookup instanceName environment
+  case dataDeclaration of
+    Just (DataValue values) -> return $ DataValue $ Map.union fields values
+    _ -> Except.throwError $ VariableNotFound instanceName
   where
     evaluateField DataInstanceField {Expression.fieldName, fieldValue} = do
       value <- evaluateValue environment fieldValue
@@ -73,7 +89,7 @@ evaluateValue environment ApplicationExpression {function, argument} = do
         TypeMismatchError
           { expectedType = "Closure",
             actualType = Type.getTypeName $ Value.getValueType actualType,
-            context = ""
+            context = "evaluate closure value"
           }
 evaluateValue environment (TupleExpression tuple) = do
   evaluatedTuple <- Monad.mapM (evaluateValue environment) tuple
@@ -94,7 +110,7 @@ evaluateValue environment ConditionalExpression {condition, positive, negative} 
         TypeMismatchError
           { expectedType = "Bool",
             actualType = Type.getTypeName $ Value.getValueType actualType,
-            context = ""
+            context = "evaluate conditional value"
           }
 evaluateValue _ (ConstantExpression constant) =
   return $ evaluateConstant constant
@@ -103,6 +119,7 @@ evaluateValue environment (VariableExpression name) =
 
 evaluateConstant :: PhallConstant -> PhallValue
 evaluateConstant UnitConstant = UnitValue
+evaluateConstant NoneConstant = NoneValue
 evaluateConstant (BooleanConstant boolean) = BooleanValue boolean
 evaluateConstant (IntegerConstant integer) = IntegerValue integer
 evaluateConstant (FloatConstant float) = FloatValue float

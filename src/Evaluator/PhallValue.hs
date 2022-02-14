@@ -3,6 +3,7 @@
 module Evaluator.PhallValue where
 
 import qualified Data.List as List
+import Data.Map as Map
 import Data.Text.Lazy as Text
 import Environment
 import Error
@@ -11,6 +12,7 @@ import Text.JSON as Json
 
 data PhallValue
   = UnitValue
+  | NoneValue
   | BooleanValue Bool
   | IntegerValue Integer
   | FloatValue Double
@@ -19,7 +21,7 @@ data PhallValue
   | TupleValue [PhallValue]
   | ListValue [PhallValue]
   | ClosureValue ClosureInner
-  | DataValue [(Text, PhallValue)]
+  | DataValue (Map Text PhallValue)
   | EnumValue PhallValue
   | ExportBundleValue (Environment PhallValue)
   deriving (Show, Eq)
@@ -35,6 +37,7 @@ instance Eq ClosureInner where
 
 getValueType :: PhallValue -> PhallType
 getValueType UnitValue = ConstantType UnitType
+getValueType NoneValue = UnknownType
 getValueType (BooleanValue _) = ConstantType BooleanType
 getValueType (IntegerValue _) = ConstantType IntegerType
 getValueType (FloatValue _) = ConstantType FloatType
@@ -49,10 +52,10 @@ getValueType (ListValue list) =
 getValueType (ClosureValue _) =
   LambdaType {parameterType = AnyType, bodyType = AnyType}
 getValueType (DataValue dataValue) =
-  DataType . List.map toFieldType $ dataValue
+  DataType . List.map toFieldType $ Map.toList dataValue
   where
     toFieldType (fieldName, fieldType) =
-      DataTypeField {fieldName, fieldType = getValueType fieldType}
+      DataTypeField {Type.fieldName, fieldType = getValueType fieldType, fieldHasDefault = False}
 getValueType (EnumValue _) = UnknownType
 getValueType (ExportBundleValue _) = UnknownType
 
@@ -61,6 +64,7 @@ instance JSON PhallValue where
     Error "Reading JSON to Phall is not supported"
 
   showJSON UnitValue = Json.showJSON ()
+  showJSON NoneValue = JSNull
   showJSON (BooleanValue value) = Json.showJSON value
   showJSON (IntegerValue value) = Json.showJSON value
   showJSON (FloatValue value) = Json.showJSON value
@@ -70,7 +74,7 @@ instance JSON PhallValue where
   showJSON (ListValue list) = Json.showJSON list
   showJSON (ClosureValue _) = JSNull
   showJSON (DataValue fields) =
-    Json.makeObj . List.map mapField $ fields
+    Json.makeObj . List.map mapField $ Map.toList fields
     where
       mapField (fieldName, fieldValue) =
         (Text.unpack fieldName, showJSON fieldValue)
