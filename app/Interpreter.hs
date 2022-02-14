@@ -20,24 +20,24 @@ import TypeEvaluator.TypeEvaluator as TypeEvaluator
 handleCommand :: [String] -> IO ()
 handleCommand ["parse", file] = runResult $ do
   expression <- parseFile file
-  Except.liftIO $ PrettySimple.pPrint expression
+  prettyPrintColor $ show expression
 handleCommand ["eval-type", file] = runResult $ do
   expression <- parseFile file
   expressionType <- Error.toResultIO $ TypeEvaluator.evaluate expression
-  Except.liftIO . TextIO.putStrLn $ Type.getTypeName expressionType
+  prettyPrintColor $ Text.unpack $ Type.getTypeName expressionType
 handleCommand ["eval", file] = runResult $ do
   value <- evaluateFile file
-  Except.liftIO $ PrettySimple.pPrint value
+  prettyPrintColor $ show value
 handleCommand ["eval-json", file] = runResult $ do
   value <- evaluateFile file
-  Except.liftIO $ PrettySimple.pPrintString $ Json.encode value
+  prettyPrintColor $ Json.encode value
 handleCommand ["eval-json-raw", file] = runResult $ do
   value <- evaluateFile file
-  Except.liftIO $ PrettySimple.pPrintStringNoColor $ Json.encode value
+  prettyPrintNoColor $ Json.encode value
 handleCommand ["check-type", file] = runResult $ do
   expression <- parseFile file
   _ <- Error.toResultIO $ TypeEvaluator.evaluate expression
-  Except.liftIO $ TextIO.putStrLn ("File '" <> Text.pack file <> "' types correctly.")
+  prettyPrintColor ("File '" <> file <> "' types correctly.")
 handleCommand _ =
   TextIO.putStrLn
     "Unknown command. Try `parse|eval-type|eval|eval-json|eval-json-raw|check-type <file.phall>`"
@@ -60,3 +60,13 @@ evaluateFile file = do
   expression <- parseFile file
   _ <- Error.toResultIO $ TypeEvaluator.evaluate expression
   Error.toResultIO $ Evaluator.evaluate expression
+
+prettyPrintColor :: String -> ResultIO ()
+prettyPrintColor = do
+  let smallerIndentOptions = defaultOutputOptionsDarkBg {outputOptionsIndentAmount = 2}
+  Except.liftIO . PrettySimple.pPrintStringOpt CheckColorTty smallerIndentOptions
+
+prettyPrintNoColor :: String -> ResultIO ()
+prettyPrintNoColor = do
+  let smallerIndentOptions = defaultOutputOptionsNoColor {outputOptionsIndentAmount = 2}
+  Except.liftIO . PrettySimple.pPrintStringOpt NoCheckColorTty smallerIndentOptions
