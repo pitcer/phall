@@ -1,0 +1,25 @@
+let cons element list =
+  @cons element list
+in
+
+let foldr accumulate base list =
+  @fold accumulate base list
+in
+
+let map
+  transform: Any -> Any
+  list: [Any]
+= foldr
+    (element accumulator -> @cons (transform element) accumulator)
+    [] list
+in
+
+let append
+  first: [Any]
+  second: [Any]
+= foldr
+    (element accumulator -> @cons element accumulator)
+    second first
+in
+
+export *
