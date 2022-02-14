@@ -35,6 +35,15 @@ evaluateValue environment TypeDeclarationExpression {typeDeclarationBody} =
   evaluateValue environment typeDeclarationBody
 evaluateValue environment DataDeclarationExpression {declarationBody} =
   evaluateValue environment declarationBody
+evaluateValue
+  environment
+  EnumDeclarationExpression {enumDeclarationVariants, enumDeclarationBody} = do
+    bodyEnvironment <- Monad.foldM extendEnvironment environment enumDeclarationVariants
+    evaluateValue bodyEnvironment enumDeclarationBody
+    where
+      extendEnvironment accumulator EnumVariant {enumVariantName, enumVariantValue} = do
+        evaluatedValue <- EnumValue <$> evaluateValue environment enumVariantValue
+        return $ Environment.with enumVariantName evaluatedValue accumulator
 evaluateValue environment DataInstanceExpression {instanceFields} = do
   fields <- Monad.mapM evaluateField instanceFields
   return $ DataValue fields

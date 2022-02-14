@@ -18,6 +18,7 @@ data Keyword
   | InKeyword
   | TypeKeyword
   | DataKeyword
+  | EnumKeyword
   | ImportKeyword
   | ExportKeyword
   | FromKeyword
@@ -34,6 +35,7 @@ instance EnumValues Keyword where
   enumName InKeyword = "in"
   enumName TypeKeyword = "type"
   enumName DataKeyword = "data"
+  enumName EnumKeyword = "enum"
   enumName ImportKeyword = "import"
   enumName ExportKeyword = "export"
   enumName FromKeyword = "from"

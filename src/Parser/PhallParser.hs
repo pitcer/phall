@@ -44,6 +44,7 @@ complexExpressions =
       parseExport,
       parseTypeDeclaration,
       parseDataDeclaration,
+      parseEnumDeclaration,
       parseLet,
       parseConditional,
       parseInternalCall,
@@ -137,6 +138,31 @@ parseDataDeclaration = do
   declarationBody <- parseExpression
   return DataDeclarationExpression {declarationName, declarationFields, declarationBody}
 
+parseEnumDeclaration :: Parser PhallExpression
+parseEnumDeclaration = do
+  Lexer.tokenizeKeyword EnumKeyword
+  enumDeclarationName <- Lexer.tokenizeIdentifier
+  Lexer.tokenizeSymbol EqualitySymbol
+  enumDeclarationVariants <-
+    Megaparsec.some $
+      parseOptionalComma
+        (parseVariant parseInnerExpression)
+        (parseVariant parseExpression)
+  Lexer.tokenizeKeyword InKeyword
+  enumDeclarationBody <- parseExpression
+  return
+    EnumDeclarationExpression
+      { enumDeclarationName,
+        enumDeclarationVariants,
+        enumDeclarationBody
+      }
+  where
+    parseVariant valueParser = do
+      enumVariantName <- Lexer.tokenizeIdentifier
+      Lexer.tokenizeSymbol EqualitySymbol
+      enumVariantValue <- valueParser
+      return EnumVariant {Expression.enumVariantName, Expression.enumVariantValue}
+
 parseDataInstance :: Parser PhallExpression
 parseDataInstance = do
   instanceName <- Lexer.tokenizeIdentifier
@@ -148,13 +174,12 @@ parseDataInstance = do
         (parseFieldInstance parseExpression)
   Lexer.tokenizeSymbol RightCurlyBracket
   return DataInstanceExpression {instanceName, instanceFields}
-
-parseFieldInstance :: Parser PhallExpression -> Parser DataInstanceField
-parseFieldInstance valueParser = do
-  fieldName <- Lexer.tokenizeIdentifier
-  Lexer.tokenizeSymbol EqualitySymbol
-  fieldValue <- valueParser
-  return DataInstanceField {Expression.fieldName, Expression.fieldValue}
+  where
+    parseFieldInstance valueParser = do
+      fieldName <- Lexer.tokenizeIdentifier
+      Lexer.tokenizeSymbol EqualitySymbol
+      fieldValue <- valueParser
+      return DataInstanceField {Expression.fieldName, Expression.fieldValue}
 
 parseField :: Parser DataTypeField
 parseField = do

@@ -42,21 +42,33 @@ evaluateType
     let declarationType = DataType declarationFields
     let bodyEnvironment = Environment.with declarationName declarationType environment
     evaluateType bodyEnvironment declarationBody
+evaluateType
+  environment
+  EnumDeclarationExpression {enumDeclarationName, enumDeclarationVariants, enumDeclarationBody} = do
+    let extendedEnvironment = Environment.with enumDeclarationName declarationType environment
+    let bodyEnvironment = List.foldr extendEnvironment extendedEnvironment enumDeclarationVariants
+    evaluateType bodyEnvironment enumDeclarationBody
+    where
+      declarationType = NamedType enumDeclarationName
+
+      extendEnvironment variant =
+        Environment.with (Expression.enumVariantName variant) declarationType
 evaluateType environment DataInstanceExpression {instanceName, instanceFields} = do
   instanceType <- TypeEnvironment.getType environment instanceName
   evaluateDataType instanceType
   where
+    instanceNamedType = NamedType instanceName
+
     evaluateDataType (DataType typeFields) = do
       let sortedTypeFields = List.sortOn Type.fieldName typeFields
       let sortedInstanceFields = List.sortOn Expression.fieldName instanceFields
       evaluatedInstanceFields <- Monad.mapM evaluateInstanceField sortedInstanceFields
       Monad.mapM_ validateField $ Prelude.zip sortedTypeFields evaluatedInstanceFields
-      let resultType = NamedType instanceName
-      return resultType
+      return instanceNamedType
     evaluateDataType instanceType =
       Except.throwError $
         TypeMismatchError
-          { expectedType = "DataType(" <> instanceName <> ")",
+          { expectedType = Type.getTypeName instanceNamedType,
             actualType = Type.getTypeName instanceType,
             context = "evaluate data instance expression"
           }

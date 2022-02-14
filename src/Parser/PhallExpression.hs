@@ -22,6 +22,11 @@ data PhallExpression
         declarationFields :: [DataTypeField],
         declarationBody :: PhallExpression
       }
+  | EnumDeclarationExpression
+      { enumDeclarationName :: Name,
+        enumDeclarationVariants :: [EnumVariant],
+        enumDeclarationBody :: PhallExpression
+      }
   | DataInstanceExpression
       { instanceName :: Name,
         instanceFields :: [DataInstanceField]
@@ -53,6 +58,12 @@ data PhallExpression
 data LambdaParameter = LambdaParameter
   { parameterName :: Name,
     parameterType :: PhallType
+  }
+  deriving (Show, Eq)
+
+data EnumVariant = EnumVariant
+  { enumVariantName :: Name,
+    enumVariantValue :: PhallExpression
   }
   deriving (Show, Eq)
 

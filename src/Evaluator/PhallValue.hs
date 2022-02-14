@@ -20,6 +20,7 @@ data PhallValue
   | ListValue [PhallValue]
   | ClosureValue ClosureInner
   | DataValue [(Text, PhallValue)]
+  | EnumValue PhallValue
   | ExportBundleValue (Environment PhallValue)
   deriving (Show, Eq)
 
@@ -52,6 +53,7 @@ getValueType (DataValue dataValue) =
   where
     toFieldType (fieldName, fieldType) =
       DataTypeField {fieldName, fieldType = getValueType fieldType}
+getValueType (EnumValue _) = UnknownType
 getValueType (ExportBundleValue _) = UnknownType
 
 instance JSON PhallValue where
@@ -72,5 +74,6 @@ instance JSON PhallValue where
     where
       mapField (fieldName, fieldValue) =
         (Text.unpack fieldName, showJSON fieldValue)
+  showJSON (EnumValue value) = Json.showJSON value
   showJSON (ExportBundleValue _) =
     error "Trying to convert export bundle to JSON"

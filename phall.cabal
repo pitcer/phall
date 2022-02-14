@@ -36,9 +36,11 @@ library
       Internal.InternalType
       Lexer.PhallLexer
       Lexer.Symbol
+      Parser.CommonParser
       Parser.PhallExpression
       Parser.PhallParser
       Parser.PhallType
+      Parser.TypeParser
       TypeEvaluator.TypeEnvironment
       TypeEvaluator.TypeEvaluator
   other-modules:

@@ -21,6 +21,7 @@ data PhallType
       }
   | TupleType [PhallType]
   | DataType [DataTypeField]
+  | EnumType [Name]
   | ExportBundleType (Environment PhallType)
   deriving (Show)
 
@@ -96,5 +97,7 @@ getTypeName (DataType fields) =
       Prelude.map
         (\DataTypeField {fieldName, fieldType} -> fieldName <> ": " <> getTypeName fieldType)
         fields
+getTypeName (EnumType variants) =
+  "{" <> Text.intercalate " | " variants <> "}"
 getTypeName (ExportBundleType environment) =
   "(export " <> Text.intercalate ", " (Environment.names environment) <> ")"
