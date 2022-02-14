@@ -76,7 +76,7 @@ getTypeName (ConstantType IntegerType) = enumName IntegerTypeKeyword
 getTypeName (ConstantType FloatType) = enumName FloatTypeKeyword
 getTypeName (ConstantType CharType) = enumName CharTypeKeyword
 getTypeName (ConstantType StringType) = enumName StringTypeKeyword
-getTypeName (NamedType name) = name
+getTypeName (NamedType name) = "(name: " <> name <> ")"
 getTypeName (ListType listType) =
   enumName LeftSquareBracket <> getTypeName listType <> enumName RightSquareBracket
 getTypeName (TupleType tupleType) =

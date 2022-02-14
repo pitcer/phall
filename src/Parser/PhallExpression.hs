@@ -12,6 +12,11 @@ data PhallExpression
         importBody :: PhallExpression
       }
   | ExportExpression (FullSet Name)
+  | TypeDeclarationExpression
+      { typeDeclarationName :: Name,
+        typeDeclarationType :: PhallType,
+        typeDeclarationBody :: PhallExpression
+      }
   | DataDeclarationExpression
       { declarationName :: Name,
         declarationFields :: [DataTypeField],

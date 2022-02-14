@@ -16,6 +16,7 @@ data Keyword
   | ElseKeyword
   | LetKeyword
   | InKeyword
+  | TypeKeyword
   | DataKeyword
   | ImportKeyword
   | ExportKeyword
@@ -31,6 +32,7 @@ instance EnumValues Keyword where
   enumName ElseKeyword = "else"
   enumName LetKeyword = "let"
   enumName InKeyword = "in"
+  enumName TypeKeyword = "type"
   enumName DataKeyword = "data"
   enumName ImportKeyword = "import"
   enumName ExportKeyword = "export"

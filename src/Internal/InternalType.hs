@@ -15,9 +15,9 @@ internalCallType "sub" = return arithmeticOperationType
 internalCallType "mul" = return arithmeticOperationType
 internalCallType "div" = return arithmeticOperationType
 internalCallType "fold" =
-  return ([createNestedLambdas [AnyType, AnyType, AnyType], AnyType, ListType AnyType], AnyType)
+  return ([createNestedLambdas [AnyType, AnyType, AnyType], AnyType, AnyType], AnyType)
 internalCallType "cons" =
-  return ([AnyType, ListType AnyType], ListType AnyType)
+  return ([AnyType, AnyType], AnyType)
 internalCallType "isEqual" =
   return ([AnyType, AnyType], ConstantType BooleanType)
 internalCallType name = Except.throwError $ TypeNotFoundError name

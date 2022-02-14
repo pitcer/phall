@@ -5,6 +5,7 @@ module Evaluator.ValueEvaluator where
 
 import Control.Monad as Monad
 import qualified Control.Monad.Except as Except
+import Data.Text.Lazy as Text
 import Environment
 import Error
 import Evaluator.PhallValue as Value
@@ -30,6 +31,8 @@ evaluateValue environment ImportExpression {importSource, importedItems, importB
 evaluateValue environment (ExportExpression exportedItems) = do
   let restrictedEnvironment = Environment.restrict environment exportedItems
   return $ ExportBundleValue restrictedEnvironment
+evaluateValue environment TypeDeclarationExpression {typeDeclarationBody} =
+  evaluateValue environment typeDeclarationBody
 evaluateValue environment DataDeclarationExpression {declarationBody} =
   evaluateValue environment declarationBody
 evaluateValue environment DataInstanceExpression {instanceFields} = do
@@ -80,7 +83,7 @@ evaluateValue environment ConditionalExpression {condition, positive, negative} 
     evaluateCondition actualType = do
       Except.throwError $
         TypeMismatchError
-          { expectedType = "Boolean",
+          { expectedType = "Bool",
             actualType = Type.getTypeName $ Value.getValueType actualType,
             context = ""
           }
@@ -95,4 +98,4 @@ evaluateConstant (BooleanConstant boolean) = BooleanValue boolean
 evaluateConstant (IntegerConstant integer) = IntegerValue integer
 evaluateConstant (FloatConstant float) = FloatValue float
 evaluateConstant (CharConstant char) = CharValue char
-evaluateConstant (StringConstant string) = StringValue string
+evaluateConstant (StringConstant string) = StringValue $ Text.unpack string

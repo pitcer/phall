@@ -1,21 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lexer.PhallLexer
-  ( Parser,
-    tokenizeIdentifier,
-    tokenizeSignedFloat,
-    tokenizeSignedInteger,
-    tokenizeSymbol,
-    tokenizeString,
-    tokenizePath,
-    tokenizeChar,
-    tokenizeKeyword,
-    betweenParenthesis,
-    spaceConsumer,
-    lexeme,
-    symbol,
-  )
-where
+module Lexer.PhallLexer where
 
 import Common (Parser)
 import Control.Monad as Monad
@@ -69,6 +54,13 @@ tokenizeKeyword keyword =
   lexeme $
     Char.string (enumName keyword)
       *> Megaparsec.notFollowedBy identifierNextCharacters
+
+tokenizeTypeKeyword :: TypeKeyword -> Parser TypeKeyword
+tokenizeTypeKeyword typeKeyword =
+  lexeme $ do
+    _ <- Char.string (enumName typeKeyword)
+    _ <- Megaparsec.notFollowedBy identifierNextCharacters
+    return typeKeyword
 
 tokenizeIdentifier :: Parser Text
 tokenizeIdentifier =

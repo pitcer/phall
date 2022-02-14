@@ -30,6 +30,9 @@ data PhallError
   | VariableNotFound
       { variableName :: Text
       }
+  | UnknownInternalCall
+      { callName :: Text
+      }
   | FieldNamesMismatchError
       { typeFieldName :: Text,
         actualFieldName :: Text
@@ -52,6 +55,8 @@ message TypeNotFoundError {typeVariableName} =
     <> "' not found in type environment"
 message VariableNotFound {variableName} =
   "VariableNotFound: Variable '" <> variableName <> "' not found in environment"
+message UnknownInternalCall {callName} =
+  "UnknownInternalCall: @" <> callName <> "."
 message UnexpectedExportError =
   "UnexpectedExportError: export occured in not imported expression."
 message MissingExportError =

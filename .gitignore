@@ -1,6 +1,7 @@
 dist-newstyle/
 out/
 playground/
+json2toml/
 .stack-work/
 .idea/
 *.iml

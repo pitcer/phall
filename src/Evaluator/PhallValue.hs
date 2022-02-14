@@ -15,7 +15,7 @@ data PhallValue
   | IntegerValue Integer
   | FloatValue Double
   | CharValue Char
-  | StringValue Text
+  | StringValue String
   | TupleValue [PhallValue]
   | ListValue [PhallValue]
   | ClosureValue ClosureInner
@@ -41,6 +41,8 @@ getValueType (CharValue _) = ConstantType CharType
 getValueType (StringValue _) = ConstantType StringType
 getValueType (TupleValue tuple) =
   TupleType $ List.map getValueType tuple
+getValueType (ListValue []) =
+  ListType AnyType
 getValueType (ListValue list) =
   ListType . getValueType . Prelude.head $ list
 getValueType (ClosureValue _) =
@@ -61,8 +63,7 @@ instance JSON PhallValue where
   showJSON (IntegerValue value) = Json.showJSON value
   showJSON (FloatValue value) = Json.showJSON value
   showJSON (CharValue value) = Json.showJSON value
-  showJSON (StringValue value) =
-    Json.showJSON . Text.unpack $ value
+  showJSON (StringValue value) = Json.showJSON value
   showJSON (TupleValue tuple) = Json.showJSON tuple
   showJSON (ListValue list) = Json.showJSON list
   showJSON (ClosureValue _) = JSNull

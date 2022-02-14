@@ -46,7 +46,7 @@ runResult :: ResultIO () -> IO ()
 runResult resultIO = do
   result <- Except.runExceptT resultIO
   case result of
-    Left phallError -> print $ Error.message phallError
+    Left phallError -> TextIO.putStrLn $ Error.message phallError
     Right _ -> return ()
 
 parseFile :: String -> ResultIO PhallExpression

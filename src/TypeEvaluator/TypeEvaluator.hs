@@ -33,6 +33,11 @@ evaluateType environment (ExportExpression exportedItems) = do
   return (ExportBundleType restrictedEnvironment)
 evaluateType
   environment
+  TypeDeclarationExpression {typeDeclarationName, typeDeclarationType, typeDeclarationBody} = do
+    let bodyEnvironment = Environment.with typeDeclarationName typeDeclarationType environment
+    evaluateType bodyEnvironment typeDeclarationBody
+evaluateType
+  environment
   DataDeclarationExpression {declarationName, declarationFields, declarationBody} = do
     let declarationType = DataType declarationFields
     let bodyEnvironment = Environment.with declarationName declarationType environment

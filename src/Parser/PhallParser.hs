@@ -40,6 +40,7 @@ complexExpressions =
     Megaparsec.try
     [ parseImport,
       parseExport,
+      parseTypeDeclaration,
       parseDataDeclaration,
       parseLet,
       parseConditional,
@@ -113,6 +114,16 @@ parseImportedOrExportedItems =
         Monad.guard $ length items == length itemsSet
         return $ NotFull itemsSet
     ]
+
+parseTypeDeclaration :: Parser PhallExpression
+parseTypeDeclaration = do
+  Lexer.tokenizeKeyword TypeKeyword
+  typeDeclarationName <- Lexer.tokenizeIdentifier
+  Lexer.tokenizeSymbol EqualitySymbol
+  typeDeclarationType <- parseType
+  Lexer.tokenizeKeyword InKeyword
+  typeDeclarationBody <- parseExpression
+  return TypeDeclarationExpression {typeDeclarationName, typeDeclarationType, typeDeclarationBody}
 
 parseDataDeclaration :: Parser PhallExpression
 parseDataDeclaration = do
@@ -218,7 +229,7 @@ simpleTypes =
       return $ ListType listType
 
     parseTypeKeywords =
-      map (Megaparsec.try . fmap Type.fromTypeKeyword . Lexer.symbol) enumValues
+      map (Megaparsec.try . fmap Type.fromTypeKeyword . Lexer.tokenizeTypeKeyword) enumValues
 
     parseNamedType =
       Megaparsec.try $ NamedType <$> Lexer.tokenizeIdentifier
