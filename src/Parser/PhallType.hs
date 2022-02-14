@@ -21,7 +21,6 @@ data PhallType
       }
   | TupleType [PhallType]
   | DataType [DataTypeField]
-  | EnumType [Name]
   | ExportBundleType (Environment PhallType)
   deriving (Show)
 
@@ -69,7 +68,7 @@ fromTypeKeyword CharTypeKeyword = ConstantType CharType
 fromTypeKeyword StringTypeKeyword = ConstantType StringType
 
 getTypeName :: PhallType -> Text
-getTypeName UnknownType = "unknown type"
+getTypeName UnknownType = "(unknown type)"
 getTypeName AnyType = enumName AnyTypeKeyword
 getTypeName (ConstantType UnitType) = enumName UnitSymbol
 getTypeName (ConstantType BooleanType) = enumName BooleanTypeKeyword
@@ -91,13 +90,9 @@ getTypeName LambdaType {parameterType, bodyType} =
     <> getTypeName bodyType
     <> ")"
 getTypeName (DataType fields) =
-  "{" <> Text.intercalate ", " fieldsText <> "}"
+  "{" <> Text.intercalate ", " (Prelude.map stringifyField fields) <> "}"
   where
-    fieldsText =
-      Prelude.map
-        (\DataTypeField {fieldName, fieldType} -> fieldName <> ": " <> getTypeName fieldType)
-        fields
-getTypeName (EnumType variants) =
-  "{" <> Text.intercalate " | " variants <> "}"
+    stringifyField DataTypeField {fieldName, fieldType} =
+      fieldName <> ": " <> getTypeName fieldType
 getTypeName (ExportBundleType environment) =
   "(export " <> Text.intercalate ", " (Environment.names environment) <> ")"
