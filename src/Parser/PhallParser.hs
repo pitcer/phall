@@ -15,8 +15,10 @@ import Data.Text.Lazy.IO as TextIO
 import FullSet
 import Lexer.PhallLexer as Lexer
 import Lexer.Symbol as Symbol
+import Parser.CommonParser as Parser
 import Parser.PhallExpression as Expression
 import Parser.PhallType as Type
+import Parser.TypeParser as Parser
 import qualified Text.Megaparsec as Megaparsec
 
 parse :: Parser PhallExpression
@@ -200,54 +202,6 @@ desugarMultiparameterLambda = foldr createLambda
           Expression.bodyType = UnknownType
         }
 
-parseType :: Parser PhallType
-parseType = do
-  betweenParenthesisOrNot innerParser innerParser
-  where
-    innerParser = Megaparsec.choice $ complexTypes ++ simpleTypes
-
-parseInnerType :: Parser PhallType
-parseInnerType =
-  betweenParenthesisOrNot
-    (Megaparsec.choice simpleTypes)
-    (Megaparsec.choice complexTypes)
-
-simpleTypes :: [Parser PhallType]
-simpleTypes =
-  [parseTupleType, parseListType] ++ parseTypeKeywords ++ [parseNamedType]
-  where
-    parseTupleType = Megaparsec.try $ do
-      Lexer.tokenizeSymbol LeftCurlyBracket
-      tupleType <- Megaparsec.some $ parseOptionalComma parseInnerType parseType
-      Lexer.tokenizeSymbol RightCurlyBracket
-      return $ TupleType tupleType
-
-    parseListType = Megaparsec.try $ do
-      Lexer.tokenizeSymbol LeftSquareBracket
-      listType <- parseType
-      Lexer.tokenizeSymbol RightSquareBracket
-      return $ ListType listType
-
-    parseTypeKeywords =
-      map (Megaparsec.try . fmap Type.fromTypeKeyword . Lexer.tokenizeTypeKeyword) enumValues
-
-    parseNamedType =
-      Megaparsec.try $ NamedType <$> Lexer.tokenizeIdentifier
-
-complexTypes :: [Parser PhallType]
-complexTypes =
-  [parseLambdaType]
-  where
-    parseLambdaType = Megaparsec.try $ do
-      parameterType <- parseInnerType
-      Lexer.tokenizeSymbol RightArrowSymbol
-      bodyType <- parseType
-      return $ LambdaType {Type.parameterType, Type.bodyType}
-
-betweenParenthesisOrNot :: Parser a -> Parser a -> Parser a
-betweenParenthesisOrNot freestandingParser betweenParser =
-  Megaparsec.try freestandingParser <|> Lexer.betweenParenthesis betweenParser
-
 parseConditional :: Parser PhallExpression
 parseConditional = do
   Lexer.tokenizeKeyword IfKeyword
@@ -271,13 +225,6 @@ parseList = do
   list <- Megaparsec.many $ parseOptionalComma parseInnerExpression parseExpression
   Lexer.tokenizeSymbol RightSquareBracket
   return $ ListExpression list
-
-parseOptionalComma :: Parser a -> Parser a -> Parser a
-parseOptionalComma withoutComaParser withComaParser =
-  Megaparsec.choice . map Megaparsec.try $
-    [ withComaParser <* Lexer.tokenizeSymbol CommaSymbol,
-      withoutComaParser
-    ]
 
 parseConstant :: Parser PhallConstant
 parseConstant =
