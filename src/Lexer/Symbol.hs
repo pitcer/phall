@@ -54,11 +54,11 @@ data TypeKeyword
 
 instance EnumValues TypeKeyword where
   enumName AnyTypeKeyword = "Any"
-  enumName BooleanTypeKeyword = "Bool"
-  enumName IntegerTypeKeyword = "Int"
+  enumName BooleanTypeKeyword = "Boolean"
+  enumName IntegerTypeKeyword = "Integer"
   enumName FloatTypeKeyword = "Float"
   enumName CharTypeKeyword = "Char"
-  enumName StringTypeKeyword = "Str"
+  enumName StringTypeKeyword = "String"
 
 data Symbol
   = LeftParenthesisSymbol
