@@ -26,6 +26,7 @@ data PhallType
 
 data PhallConstantType
   = UnitType
+  | NoneType
   | BooleanType
   | IntegerType
   | FloatType
@@ -41,6 +42,10 @@ data DataTypeField = DataTypeField
   deriving (Show, Eq)
 
 instance Eq PhallType where
+  OptionType _ == ConstantType NoneType = True
+  ConstantType NoneType == OptionType _ = True
+  _ == ConstantType NoneType = False
+  ConstantType NoneType == _ = False
   AnyType == _ = True
   _ == AnyType = True
   UnknownType == UnknownType = True
@@ -49,6 +54,8 @@ instance Eq PhallType where
   ListType first == ListType second = first == second
   TupleType first == TupleType second = first == second
   OptionType first == OptionType second = first == second
+  OptionType first == second = first == second
+  first == OptionType second = first == second
   (==)
     LambdaType
       { parameterType = firstParameter,
@@ -72,6 +79,7 @@ getTypeName :: PhallType -> Text
 getTypeName UnknownType = "(unknown type)"
 getTypeName AnyType = enumName AnyTypeKeyword
 getTypeName (ConstantType UnitType) = enumName UnitSymbol
+getTypeName (ConstantType NoneType) = enumName NoneKeyword
 getTypeName (ConstantType BooleanType) = enumName BooleanTypeKeyword
 getTypeName (ConstantType IntegerType) = enumName IntegerTypeKeyword
 getTypeName (ConstantType FloatType) = enumName FloatTypeKeyword

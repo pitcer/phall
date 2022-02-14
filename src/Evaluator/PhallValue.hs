@@ -37,7 +37,7 @@ instance Eq ClosureInner where
 
 getValueType :: PhallValue -> PhallType
 getValueType UnitValue = ConstantType UnitType
-getValueType NoneValue = UnknownType
+getValueType NoneValue = ConstantType NoneType
 getValueType (BooleanValue _) = ConstantType BooleanType
 getValueType (IntegerValue _) = ConstantType IntegerType
 getValueType (FloatValue _) = ConstantType FloatType

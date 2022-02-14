@@ -148,7 +148,7 @@ evaluateType environment ApplicationExpression {function, argument} = do
           }
       return bodyType
     -- TODO: remove temporary fix
-    evaluateFunctionType AnyType = return AnyType
+--    evaluateFunctionType AnyType = return AnyType
     --
     evaluateFunctionType functionType =
       Except.throwError $
@@ -203,7 +203,7 @@ evaluateType environment (VariableExpression name) = do
 
 evaluateConstantType :: PhallConstant -> PhallType
 evaluateConstantType UnitConstant = ConstantType UnitType
-evaluateConstantType NoneConstant = UnknownType
+evaluateConstantType NoneConstant = ConstantType NoneType
 evaluateConstantType (BooleanConstant _) = ConstantType BooleanType
 evaluateConstantType (IntegerConstant _) = ConstantType IntegerType
 evaluateConstantType (FloatConstant _) = ConstantType FloatType

@@ -14,13 +14,22 @@ parseType :: Parser PhallType
 parseType = do
   Parser.betweenParenthesisOrNot innerParser innerParser
   where
-    innerParser = Megaparsec.choice $ complexTypes ++ simpleTypes
+    innerParser = parseOptionType $ Megaparsec.choice $ complexTypes ++ simpleTypes
 
 parseInnerType :: Parser PhallType
-parseInnerType =
-  Parser.betweenParenthesisOrNot
-    (Megaparsec.choice simpleTypes)
-    (Megaparsec.choice complexTypes)
+parseInnerType = do
+  parseOptionType $
+    Parser.betweenParenthesisOrNot
+      (Megaparsec.choice simpleTypes)
+      (Megaparsec.choice complexTypes)
+
+parseOptionType :: Parser PhallType -> Parser PhallType
+parseOptionType innerParser = do
+  parsedType <- innerParser
+  isOptional <- Megaparsec.optional $ Lexer.tokenizeSymbol QuestionMarkSymbol
+  case isOptional of
+    Nothing -> return parsedType
+    Just _ -> return $ OptionType parsedType
 
 simpleTypes :: [Parser PhallType]
 simpleTypes =

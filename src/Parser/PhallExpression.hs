@@ -9,8 +9,8 @@ import Parser.PhallType as Type
 
 data PhallExpression
   = ImportExpression
-      { importSource :: PhallExpression,
-        importedItems :: FullSet Name,
+      { importedItems :: FullSet Name,
+        importSource :: PhallExpression,
         importBody :: PhallExpression
       }
   | ExportExpression (FullSet Name)
@@ -39,12 +39,12 @@ data PhallExpression
       }
   | LambdaExpression
       { parameter :: LambdaParameter,
-        body :: PhallExpression,
-        bodyType :: PhallType
+        bodyType :: PhallType,
+        body :: PhallExpression
       }
   | ApplicationExpression
-      { function :: PhallExpression,
-        argument :: PhallExpression
+      { argument :: PhallExpression,
+        function :: PhallExpression
       }
   | ConditionalExpression
       { condition :: PhallExpression,

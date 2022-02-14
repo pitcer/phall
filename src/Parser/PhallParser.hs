@@ -140,20 +140,23 @@ parseDataDeclaration = do
   declarationBody <- parseExpression
   return DataDeclarationExpression {declarationName, declarationFields, declarationBody}
   where
-    parseField :: Parser PhallExpression -> Parser DataDeclarationField
     parseField defaultValueParser = do
       declarationFieldName <- Lexer.tokenizeIdentifier
       Lexer.tokenizeSymbol ColonSymbol
       declarationFieldType <- parseType
-      declarationFieldDefaultValue <-
-        Megaparsec.optional $
-          Lexer.tokenizeSymbol EqualitySymbol *> defaultValueParser
+      defaultValue <-
+        Megaparsec.optional $ Lexer.tokenizeSymbol EqualitySymbol *> defaultValueParser
+      let declarationFieldDefaultValue = getDefaultValue declarationFieldType defaultValue
       return
         DataDeclarationField
           { declarationFieldName,
             declarationFieldType,
             declarationFieldDefaultValue
           }
+
+    getDefaultValue (OptionType _) Nothing =
+      Just $ ConstantExpression NoneConstant
+    getDefaultValue _ value = value
 
 parseEnumDeclaration :: Parser PhallExpression
 parseEnumDeclaration = do
@@ -183,7 +186,7 @@ parseDataInstance = do
   instanceName <- Lexer.tokenizeIdentifier
   Lexer.tokenizeSymbol LeftCurlyBracket
   instanceFields <-
-    Megaparsec.some $
+    Megaparsec.many $
       parseOptionalComma
         (parseFieldInstance parseInnerExpression)
         (parseFieldInstance parseExpression)
