@@ -22,4 +22,12 @@ let append
     second first
 in
 
+let concat base =
+  foldr (list accumulator -> foldr cons accumulator list) base
+in
+
+let concat_lists lists: [[Any]] =
+  concat [] lists
+in
+
 export *

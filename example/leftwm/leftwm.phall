@@ -1,0 +1,110 @@
+import * from `example/leftwm/key.phall` in
+
+enum Layout =
+  MainAndDeck = "MainAndDeck"
+  MainAndVertStack = "MainAndVertStack"
+  MainAndHorizontalStack = "MainAndHorizontalStack"
+  GridHorizontal = "GridHorizontal"
+  EvenHorizontal = "EvenHorizontal"
+  EvenVertical = "EvenVertical"
+  Fibonacci = "Fibonacci"
+  CenterMain = "CenterMain"
+  CenterMainBalanced = "CenterMainBalanced"
+  Monocle = "Monocle"
+  RightWiderLeftStack = "RightWiderLeftStack"
+  LeftWiderRightStack = "LeftWiderRightStack"
+in
+
+data Workspace =
+  y: Integer
+  x: Integer
+  height: Integer
+  width: Integer
+  layouts: [Layout]
+in
+
+data WindowRule =
+  window_class: String
+  spawn_on_tag: Integer
+in
+
+data Scratchpad =
+  name: String
+  value: String
+  x: Float
+  y: Float
+  width: Float
+  height: Float
+in
+
+enum Command =
+  Execute = "Execute"
+  HardReload = "HardReload"
+  SoftReload = "SoftReload"
+  CloseWindow = "CloseWindow"
+  MoveToLastWorkspace = "MoveToLastWorkspace"
+  MoveWindowToNextWorkspace = "MoveWindowToNextWorkspace"
+  MoveWindowToPreviousWorkspace = "MoveWindowToPreviousWorkspace"
+  FloatingToTile = "FloatingToTile"
+  TileToFloating = "TileToFloating"
+  ToggleFloating = "ToggleFloating"
+  MoveWindowUp = "MoveWindowUp"
+  MoveWindowDown = "MoveWindowDown"
+  MoveWindowTop = "MoveWindowTop"
+  MoveToTag = "MoveToTag"
+  FocusWindowUp = "FocusWindowUp"
+  FocusWindowDown = "FocusWindowDown"
+  FocusWindowTop = "FocusWindowTop"
+  NextLayout = "NextLayout"
+  PreviousLayout = "PreviousLayout"
+  SetLayout = "SetLayout"
+  RotateTag = "RotateTag"
+  FocusWorkspaceNext = "FocusWorkspaceNext"
+  FocusWorkspacePrevious = "FocusWorkspacePrevious"
+  GotoTag = "GotoTag"
+  FocusNextTag = "FocusNextTag"
+  FocusPreviousTag = "FocusPreviousTag"
+  SwapTags = "SwapTags"
+  IncreaseMainWidth = "IncreaseMainWidth"
+  DecreaseMainWidth = "DecreaseMainWidth"
+  SetMarginMultiplier = "SetMarginMultiplier"
+  ToggleFullScreen = "ToggleFullScreen"
+  ToggleSticky = "ToggleSticky"
+  ToggleScratchPad = "ToggleScratchPad"
+in
+
+data Keybind =
+  command: Command
+  value: String?
+  modifier: [ModifierKey] = []
+  key: Key
+in
+
+enum LayoutMode =
+  WorkspaceLayout = "Workspace"
+  TagLayout = "Tag"
+in
+
+enum FocusBehaviour =
+  Sloppy = "Sloppy"
+  ClickTo = "ClickTo"
+  Driven = "Driven"
+in
+
+data LeftwmConfig =
+  modkey: Key
+  mousekey: Key
+  tags: [String]
+  layouts: [Layout]
+  layout_mode: LayoutMode
+  disable_current_tag_swap: Boolean
+  focus_behaviour: FocusBehaviour
+  focus_new_windows: Boolean
+  max_window_width: Float
+  workspaces: [Workspace]
+  window_rules: [WindowRule]
+  scratchpad: [Scratchpad]
+  keybind: [Keybind]
+in
+
+export *

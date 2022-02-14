@@ -148,7 +148,7 @@ evaluateType environment ApplicationExpression {function, argument} = do
           }
       return bodyType
     -- TODO: remove temporary fix
---    evaluateFunctionType AnyType = return AnyType
+    evaluateFunctionType AnyType = return AnyType
     --
     evaluateFunctionType functionType =
       Except.throwError $

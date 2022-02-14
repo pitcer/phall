@@ -20,10 +20,10 @@ tokenizeChar =
 -- TODO: add ${literal} syntax
 -- TODO: add escaping
 tokenizeString :: Parser Text
-tokenizeString =
-  tokenizeTextBetween quotation quotation
-  where
-    quotation = tokenizeSymbol QuotationSymbol
+tokenizeString = do
+  _ <- Char.string $ enumName QuotationSymbol
+  string <- Megaparsec.manyTill anySingle $ tokenizeSymbol QuotationSymbol
+  return $ Text.pack string
 
 tokenizePath :: Parser Text
 tokenizePath =

@@ -1,7 +1,7 @@
 import * from `lib/list.phall` in
 
-let concat strings: [String] =
-  foldr (string accumulator -> foldr cons accumulator string) "" strings
+let concat_strings strings: [String] =
+  concat "" strings
 in
 
 export *
